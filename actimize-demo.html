@@ -106,6 +106,7 @@
   #data-table td.hemanth-row { color: #b9c3f0; }
   #data-table td.jairam-row { color: #f0c3d6; }
   #data-table td.manoj-row { color: #a9e0cb; }
+  #data-table td.shiva-row { color: #f5c9a0; }
 
   #panel {
     background: #1c1c2e; border-top: 1px solid #3a3a55;
@@ -163,7 +164,8 @@
 
 <header>
   <h1>Actimize customer journey — live simulation</h1>
-  <p id="subtitle">Example customers show different paths through the same system — click nodes to explore, or press Play to move the data step by step.</p>
+  <p id="subtitle">4 customers, 4 outcomes — clean, closed-alert, screened-clean wire, and an actual SAR — click nodes to explore, or press Play to move step by step.</p>
+
 </header>
 
 <div class="users" id="users-row"></div>
@@ -206,9 +208,10 @@
 const colors = { purple:"#7F77DD", coral:"#D85A30", teal:"#1D9E75", pink:"#D4537E" };
 
 const customers = [
-  { key:"hemanth", name:"Hemanth", tag:"New — savings only", color:"#7F77DD" },
-  { key:"jairam", name:"Jairam", tag:"New — savings + loan", color:"#D4537E" },
-  { key:"manoj", name:"Manoj", tag:"Existing — SWIFT wires", color:"#1D9E75" }
+  { key:"hemanth", name:"Hemanth", tag:"New — clean, no alerts", color:"#7F77DD" },
+  { key:"jairam", name:"Jairam", tag:"New — alert, closed no SAR", color:"#D4537E" },
+  { key:"manoj", name:"Manoj", tag:"Existing — SWIFT, screened clean", color:"#1D9E75" },
+  { key:"shiva", name:"Shiva", tag:"Existing — CTR + SAR filed", color:"#D85A30" }
 ];
 
 const nodes = [
@@ -231,7 +234,7 @@ const nodes = [
       ["CUST-58211","Jairam","Driver's License D9988776","1993-11-02","45 Oak Ave, NJ"]
     ]} },
   { label:"Screening", sub:"RDC / LexisNexis / Bridger", color:"coral",
-    cat:"Screening & risk", who:"Automated (background)", desc:"Onboarding screening checks new names against sanctions, PEP, and adverse-media lists. Manoj was screened this way years ago at his own onboarding, but as an existing customer his SWIFT wires get re-screened per transaction later at Step 9.", example:"Hemanth: clear. Jairam: clear.",
+    cat:"Screening & risk", who:"Automated (background)", desc:"Onboarding screening checks new names against sanctions, PEP, and adverse-media lists. Manoj and Shiva were screened this way years ago at their own onboarding — as existing customers, their transactions get re-screened per activity later at Step 10.", example:"Hemanth: clear. Jairam: clear.",
     table:{ columns:["Customer","RDC","LexisNexis","Bridger","Result"], rows:[
       ["Hemanth","Clear","Clear","Clear","Clear"],
       ["Jairam","Clear","Clear","Clear","Clear"]
@@ -243,50 +246,81 @@ const nodes = [
       ["Jairam","Savings T&Cs + loan agreement","Yes","Imaging"]
     ]} },
   { label:"Core banking", sub:"via MuleSoft", color:"teal",
-    cat:"Core banking & data", who:"Automated integration (MuleSoft)", desc:"Approved data is pushed via API into Silverlake, and LoanIQ for Jairam's loan, creating the real account. No one retypes it. Manoj's account already exists here from years ago.", example:"SAV-100234 (Hemanth), SAV-100235 + LN-77410 (Jairam), SAV-40021 (Manoj, opened 2015).",
+    cat:"Core banking & data", who:"Automated integration (MuleSoft)", desc:"Approved data is pushed via API into Silverlake, and LoanIQ for Jairam's loan, creating the real account. No one retypes it. Manoj's and Shiva's accounts already exist here from years ago.", example:"SAV-100234 (Hemanth), SAV-100235 + LN-77410 (Jairam), SAV-40021 (Manoj, opened 2015), SAV-40598 (Shiva, opened 2018).",
     table:{ columns:["Customer","Account type","Account no.","System"], rows:[
       ["Hemanth","Savings","SAV-100234","Silverlake"],
       ["Jairam","Savings","SAV-100235","Silverlake"],
       ["Jairam","Personal loan ($45,000)","LN-77410","LoanIQ"],
-      ["Manoj","Savings (since 2015)","SAV-40021","Silverlake"]
+      ["Manoj","Savings (since 2015)","SAV-40021","Silverlake"],
+      ["Shiva","Savings (since 2018)","SAV-40598","Silverlake"]
     ]} },
   { label:"EDW load", sub:"Nightly batch", color:"teal",
-    cat:"Core banking & data", who:"Automated (Cybermation)", desc:"Every account, new or existing, feeds into the Enterprise Data Warehouse overnight — including Manoj's ongoing SWIFT wire activity.", example:"ACCOUNT.DAT, PARTY.DAT, LOAN.DAT, TRANSACTIONS.DAT.",
+    cat:"Core banking & data", who:"Automated (Cybermation)", desc:"Every account, new or existing, feeds into the Enterprise Data Warehouse overnight — including Manoj's SWIFT activity and Shiva's cash deposits and wires.", example:"ACCOUNT.DAT, PARTY.DAT, LOAN.DAT, TRANSACTIONS.DAT.",
     table:{ columns:["Customer","Source file(s)","Load time"], rows:[
       ["Hemanth","ACCOUNT.DAT, PARTY.DAT","11:00 PM batch"],
       ["Jairam","ACCOUNT.DAT, PARTY.DAT, LOAN.DAT","11:00 PM batch"],
-      ["Manoj","TRANSACTIONS.DAT","11:00 PM batch"]
+      ["Manoj","TRANSACTIONS.DAT","11:00 PM batch"],
+      ["Shiva","TRANSACTIONS.DAT","11:00 PM batch"]
+    ]} },
+  { label:"UDM", sub:"Staging → CDS → IDB schemas", color:"teal",
+    cat:"Core banking & data", who:"Automated (AIS data loader)", desc:"Before CDD or SAM can score or scan anything, the raw EDW extract has to land inside Actimize's own Unified Data Model. It first hits the Staging schema for validation, then migrates into the CDS schema (the long-term customer/account store CDD and SAM actually query), and select fields sync to the IDB schema for reporting. If this load fails or lags, every downstream check runs on stale data — this is why UDM health is watched closely by ops.", example:"All four customers' account and transaction records now sit in UDM.CDS, ready for scoring.",
+    table:{ columns:["Customer","UDM schema","Status"], rows:[
+      ["Hemanth","CDS","Loaded"],
+      ["Jairam","CDS","Loaded"],
+      ["Manoj","CDS","Loaded"],
+      ["Shiva","CDS","Loaded"]
     ]} },
   { label:"AIS / CDD", sub:"Risk score", color:"pink",
-    cat:"Compliance engine", who:"Automated rules engine", desc:"Actimize loads EDW data and scores each customer's KYC risk. Existing customers like Manoj are re-scored periodically too, not just at onboarding.", example:"Hemanth: Low. Jairam: Medium (new loan). Manoj: Medium (frequent international wires).",
-    table:{ columns:["Customer","CDD risk score","Reason"], rows:[
+    cat:"Compliance engine", who:"Automated rules engine", desc:"Actimize reads UDM data and scores each customer's KYC risk. Existing customers like Manoj and Shiva are re-scored periodically too, not just at onboarding — this is the Customer Risk Rating (CRR) that drives how often and how closely each customer's activity gets reviewed.", example:"Hemanth: Low. Jairam: Medium (new loan). Manoj: Medium (frequent international wires). Shiva: Medium (large cash + wire activity), pending re-rating after Step 13.",
+    table:{ columns:["Customer","CDD risk score (CRR)","Reason"], rows:[
       ["Hemanth","Low","Standard profile"],
       ["Jairam","Medium","New loan relationship"],
-      ["Manoj","Medium","Frequent international wires"]
+      ["Manoj","Medium","Frequent international wires"],
+      ["Shiva","Medium","Large cash deposits + wire activity"]
     ]} },
   { label:"AIS / SAM", sub:"Transaction watch (+ ThetaRay)", color:"pink",
-    cat:"Compliance engine", who:"Automated rules engine", desc:"Ongoing transactions are scanned continuously for suspicious patterns — this is where Manoj's SWIFT wires get checked every time he sends one. ThetaRay is an AI-based transaction monitoring tool sometimes run alongside SAM here, not part of onboarding screening.", example:"Jairam's near-$10k transfers raise Alert SAM148223. Manoj's $28,000 SWIFT wire to Singapore is screened against sanctions lists and passes clean.",
+    cat:"Compliance engine", who:"Automated rules engine", desc:"Ongoing transactions are scanned continuously for suspicious patterns — this is where Manoj's and Shiva's activity gets checked every time it happens. ThetaRay is an AI-based transaction monitoring tool sometimes run alongside SAM here, not part of onboarding screening.", example:"Jairam's near-$10k transfers raise Alert SAM148223. Manoj's $28,000 SWIFT wire to Singapore passes clean. Shiva's $15,000 cash deposit and $50,000 wire to a beneficiary at another bank both get flagged for separate reasons.",
     table:{ columns:["Customer","Activity","SAM result"], rows:[
       ["Hemanth","Payroll deposits, normal bill pay","No alert"],
       ["Jairam","Transfers: $9,700 / $9,500 / $9,800 in one week","Alert SAM148223 (structuring)"],
-      ["Manoj","$28,000 SWIFT wire to Singapore","Screened clean"]
+      ["Manoj","$28,000 SWIFT wire to Singapore","Screened clean"],
+      ["Shiva","$15,000 cash deposit","Flagged — over CTR threshold"],
+      ["Shiva","$50,000 wire to Rajesh Menon, Chase Bank","Alert SAM148390 (beneficiary risk)"]
+    ]} },
+  { label:"CTR filing", sub:"Currency Transaction Report", color:"pink",
+    cat:"Compliance engine", who:"Automated (threshold-based)", desc:"Any cash transaction over $10,000 in a single day automatically generates a Currency Transaction Report — this is separate from a SAR. No suspicion is implied and no analyst investigation happens; it's routine record-keeping filed with FinCEN because the law requires it for every large cash movement, clean or not.", example:"Shiva's $15,000 cash deposit auto-generates a CTR the same day — no case, no alert review needed for this part.",
+    table:{ columns:["Customer","Transaction","CTR filed?"], rows:[
+      ["Hemanth","No cash transactions over $10,000","No"],
+      ["Jairam","No cash transactions over $10,000","No"],
+      ["Manoj","No cash transactions over $10,000","No"],
+      ["Shiva","$15,000 cash deposit","Yes — CTR-2026-03311"]
     ]} },
   { label:"ActOne", sub:"Case opened", color:"pink",
-    cat:"Compliance engine", who:"Compliance analyst", desc:"The alert is investigated — analyst reviews transactions and contacts the customer. Manoj's SWIFT wire didn't raise an alert this time, so no case opens for him here.", example:"Case CASE-90456 opened for Jairam only.",
+    cat:"Compliance engine", who:"Compliance analyst", desc:"Real SAM alerts (not the automatic CTR) get investigated — analyst reviews transactions and contacts the customer. Manoj's wire didn't raise an alert this time, so no case opens for him here.", example:"Case CASE-90456 opened for Jairam's structuring alert. Case CASE-90512 opened for Shiva's flagged wire to Rajesh Menon.",
     table:{ columns:["Case ID","Customer","Alert linked","Analyst action"], rows:[
-      ["CASE-90456","Jairam","SAM148223","Reviewed transactions, contacted customer"]
+      ["CASE-90456","Jairam","SAM148223","Reviewed transactions, contacted customer"],
+      ["CASE-90512","Shiva","SAM148390","Reviewed wire purpose, researched beneficiary, requested supporting documents"]
     ]} },
   { label:"Case outcome", sub:"Closed / SAR?", color:"pink",
-    cat:"Compliance engine", who:"Compliance analyst", desc:"Case is closed with a documented finding. A SAR is filed only if activity is genuinely suspicious.", example:"Closed — legitimate contractor payments, no SAR filed.",
-    table:{ columns:["Case ID","Disposition","SAR filed?"], rows:[
-      ["CASE-90456","Closed — no suspicious activity found","No"]
+    cat:"Compliance engine", who:"Compliance analyst", desc:"Each case is closed with a documented finding. A SAR is filed only when activity is genuinely suspicious and can't be explained — this is where Jairam's and Shiva's cases take different paths, showing both possible outcomes.", example:"Jairam: closed, legitimate contractor payments, no SAR. Shiva: beneficiary tied to adverse media, no consistent business rationale given — case escalated and a SAR is filed with FinCEN.",
+    table:{ columns:["Case ID","Customer","Disposition","SAR filed?"], rows:[
+      ["CASE-90456","Jairam","Closed — no suspicious activity found","No"],
+      ["CASE-90512","Shiva","Escalated — beneficiary adverse media, inconsistent rationale","Yes — SAR-2026-00147"]
+    ]} },
+  { label:"Inter-bank screening", sub:"Counterparty & 314(b) sharing", color:"coral",
+    cat:"Screening & risk", who:"Both banks, independently", desc:"When Shiva wires $50,000 to Rajesh Menon at Chase Bank, our bank screens Rajesh (the beneficiary) against OFAC/sanctions lists before releasing the payment — this is required for every outgoing wire, not just the sender. Chase separately runs its own AML screening on the incoming payment using its own systems; we don't see their internal case data, and they don't see ours. Only the details in the SWIFT payment message itself (name, account, bank, purpose) travel with the wire. If either bank suspects something, both can legally share limited extra information directly under the PATRIOT Act's Section 314(b) safe harbor, outside normal payment channels.", example:"Rajesh Menon is screened twice, independently — once by us before sending, once by Chase on arrival.",
+    table:{ columns:["Step","Who does it","What's shared"], rows:[
+      ["Outgoing screening","Our bank (sender)","Beneficiary name/account only, via SWIFT MT103 message"],
+      ["Incoming screening","Chase Bank (receiver)","Independent — uses their own AML/Actimize-equivalent system"],
+      ["If concern arises","Either bank","Can share more detail via Section 314(b), outside the payment message"]
     ]} },
   { label:"AVA & ongoing", sub:"Dashboards", color:"pink",
-    cat:"Compliance engine", who:"Automated dashboards", desc:"AVA dashboards track everything, and all three accounts continue under standard ongoing monitoring going forward.", example:"Hemanth, Jairam, and Manoj all continue as normal, monitored customers.",
+    cat:"Compliance engine", who:"Automated dashboards", desc:"AVA dashboards track everything, and all four accounts continue under standard ongoing monitoring going forward — Shiva's risk score is now re-rated higher following the SAR.", example:"Hemanth, Jairam, and Manoj continue as normal, monitored customers. Shiva continues too, but now under closer, high-risk monitoring.",
     table:{ columns:["Customer","Status","Risk score"], rows:[
       ["Hemanth","Active","Low"],
       ["Jairam","Active","Medium"],
-      ["Manoj","Active","Medium"]
+      ["Manoj","Active","Medium"],
+      ["Shiva","Active — enhanced monitoring","High"]
     ]} }
 ];
 
@@ -423,6 +457,7 @@ function rowClass(customerCell) {
   if (v.indexOf("hemanth") !== -1) return "hemanth-row";
   if (v.indexOf("jairam") !== -1) return "jairam-row";
   if (v.indexOf("manoj") !== -1) return "manoj-row";
+  if (v.indexOf("shiva") !== -1) return "shiva-row";
   return "";
 }
 
