@@ -133,10 +133,8 @@
   }
 
   @media (max-width: 700px), (max-height: 480px) {
-    #stage-wrap { display: none; }
-    .mobile-only { display: flex; }
     header p { display: none; }
-    header h1 { font-size: 14px; }
+    header h1 { font-size: 13px; }
     header { padding: 4px 12px 0; }
     .topbar .legend { display: none; }
     .topbar { padding: 2px 8px; gap: 6px; }
@@ -145,23 +143,21 @@
     #stepcount { display: none; }
     .users {
       flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden;
-      max-height: 44px; padding: 4px 10px;
+      max-height: 40px; padding: 4px 10px;
     }
     .user-card { min-width: 150px; padding: 3px 8px; }
     .user-card .role { display: none; }
-    #mobile-step { padding: 6px 10px; }
-    #mobile-step .badge { width: 48px; height: 48px; font-size: 12px; }
-    #table-wrap { max-height: 20vh; padding: 0 10px; }
-    #panel { max-height: 24vh; padding: 6px 12px; }
+    #stage-wrap { padding: 0 4px; }
+    #table-wrap { max-height: 18vh; padding: 0 8px; }
+    #panel { max-height: 22vh; padding: 6px 12px; }
     #panel .title { font-size: 12px; }
     #panel .value { font-size: 11px; }
   }
 
   @media (max-height: 420px) {
     .users { display: none; }
-    #mobile-step .badge { width: 40px; height: 40px; }
-    #table-wrap { max-height: 26vh; }
-    #panel { max-height: 26vh; }
+    #table-wrap { max-height: 22vh; }
+    #panel { max-height: 22vh; }
   }
 
   #mobile-step {
