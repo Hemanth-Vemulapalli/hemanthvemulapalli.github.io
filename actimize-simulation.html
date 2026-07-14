@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Actimize Customer Journey Simulation</title>
+<style>
+  html, body { height: 100%; overscroll-behavior: none; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background: #14141f;
+    color: #f2f2f5;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    height: 100vh;
+    height: 100dvh;
+  }
+  header {
+    padding: 8px 20px 2px;
+    text-align: center;
+    flex: 0 0 auto;
+  }
+  header h1 { margin: 0 0 2px; font-size: 16px; font-weight: 600; }
+  header p { margin: 0; color: #9a9aa8; font-size: 11px; }
+
+  .users {
+    display: flex; gap: 6px; flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 5px 12px;
+    flex: 0 0 auto;
+  }
+  .chip {
+    display: flex; align-items: center; gap: 5px;
+    background: #1c1c2e; border: 1px solid #3a3a55; border-radius: 999px;
+    padding: 4px 10px; white-space: nowrap; flex-shrink: 0;
+  }
+  .chip .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .chip .chip-name { font-size: 12px; font-weight: 600; }
+  .chip .chip-tag { font-size: 10px; color: #9a9aa8; }
+
+  .topbar {
+    display: flex; justify-content: center; align-items: center; gap: 14px;
+    flex-wrap: wrap; padding: 4px 10px; flex: 0 0 auto;
+  }
+  .legend {
+    display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;
+    font-size: 10px; color: #b7b7c4;
+  }
+  .legend span { display: flex; align-items: center; gap: 4px; }
+  .dot-swatch { width: 8px; height: 8px; border-radius: 3px; display: inline-block; }
+
+  .controls {
+    display: flex; justify-content: center; gap: 6px; flex-wrap: wrap;
+  }
+  button {
+    background: #23233a; color: #f2f2f5; border: 1px solid #3a3a55;
+    padding: 5px 10px; border-radius: 6px; font-size: 11px; cursor: pointer;
+    font-weight: 500;
+  }
+  button:hover { background: #2d2d48; }
+  button:disabled { opacity: 0.4; cursor: default; }
+  #playAllBtn { background: #3C3489; border-color: #534AB7; }
+  #playAllBtn:hover { background: #453d9e; }
+
+  #stage-wrap {
+    max-width: 1240px; width: 100%; margin: 0 auto; padding: 0 10px;
+    flex: 1 1 0%; min-height: 0; min-width: 0;
+    display: flex; align-items: stretch; justify-content: center;
+    overflow: hidden;
+  }
+  #svg { display: block; }
+
+  .node-circle { stroke: #14141f; stroke-width: 4; transition: filter 0.2s; cursor: pointer; }
+  .node-circle:hover { filter: brightness(1.15); }
+  .node-circle.active { stroke: #ffffff; stroke-width: 5; filter: drop-shadow(0 0 10px rgba(255,255,255,0.5)); }
+  .node-circle.visited { opacity: 0.55; }
+  .node-label { fill: #ffffff; font-size: 14px; font-weight: 600; text-anchor: middle; pointer-events: none; }
+  .node-sub { fill: #d8d8e2; font-size: 11px; text-anchor: middle; pointer-events: none; }
+  .step-num { fill: #9a9aa8; font-size: 13px; font-weight: 700; text-anchor: middle; pointer-events: none; }
+
+  .flow-line { stroke: #3a3a55; stroke-width: 3; fill: none; }
+  .flow-line.done { stroke: #534AB7; }
+
+  #moving-dot { fill: #ffe680; filter: drop-shadow(0 0 8px rgba(255,230,128,0.9)); }
+
+  #table-wrap {
+    max-width: 1240px; width: 100%; margin: 0 auto; padding: 0 16px;
+    flex: 0 0 auto; max-height: 22vh; overflow-y: auto;
+  }
+  #table-caption {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
+    color: #9a9aa8; margin: 0 0 3px;
+  }
+  #table-scroll { overflow-x: auto; border: 1px solid #3a3a55; border-radius: 6px; }
+  #data-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  #data-table th, #data-table td {
+    padding: 4px 10px; text-align: left; white-space: nowrap;
+    border-bottom: 1px solid #2a2a3d;
+  }
+  #data-table th {
+    background: #23233a; color: #d8d8e2; font-weight: 600; font-size: 10px;
+  }
+  #data-table tr:last-child td { border-bottom: none; }
+  #data-table td.hemanth-row { color: #b9c3f0; }
+  #data-table td.jairam-row { color: #f0c3d6; }
+  #data-table td.manoj-row { color: #a9e0cb; }
+  #data-table td.shiva-row { color: #f5c9a0; }
+
+  #panel {
+    background: #1c1c2e; border-top: 1px solid #3a3a55;
+    padding: 8px 20px; margin-top: 6px;
+    flex: 0 0 auto; max-height: 24vh; overflow-y: auto;
+  }
+  #panel .cat { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: #9a9aa8; margin: 0 0 2px; }
+  #panel .title { font-size: 13px; font-weight: 600; margin: 0 0 4px; }
+  #panel .row { display: flex; gap: 16px; flex-wrap: wrap; }
+  #panel .col { flex: 1; min-width: 160px; }
+  #panel .label { font-size: 10px; color: #9a9aa8; margin: 0 0 1px; }
+  #panel .value { font-size: 12px; margin: 0; line-height: 1.4; }
+  #stepcount { font-size: 11px; color: #9a9aa8; }
+
+  @media (min-width: 701px) and (max-width: 1024px) {
+    header { padding: 6px 16px 2px; }
+    header h1 { font-size: 15px; }
+    header p { font-size: 10px; }
+    .controls button { padding: 4px 9px; font-size: 10px; }
+    #table-wrap { max-height: 20vh; }
+    #panel { max-height: 22vh; }
+    #panel .title { font-size: 12px; }
+    #panel .value { font-size: 11px; }
+  }
+
+  @media (max-width: 700px), (max-height: 480px) {
+    header p { display: none; }
+    header h1 { font-size: 13px; }
+    header { padding: 4px 12px 0; }
+    .topbar .legend { display: none; }
+    .topbar { padding: 2px 8px; gap: 6px; }
+    .controls { gap: 4px; }
+    .controls button { padding: 4px 7px; font-size: 10px; }
+    #stepcount { display: none; }
+    .users { max-height: 32px; padding: 4px 10px; }
+    .chip { padding: 3px 8px; }
+    .chip .chip-name { font-size: 11px; }
+    .chip .chip-tag { font-size: 9px; }
+
+    #stage-wrap {
+      flex: 0 0 auto; align-items: center; justify-content: flex-start;
+      overflow-x: auto; overflow-y: hidden; padding: 4px;
+    }
+    #table-wrap { max-height: 26vh; padding: 0 8px; }
+    #panel {
+      flex: 1 1 auto; min-height: 0; max-height: none;
+      padding: 6px 12px;
+    }
+    #panel .title { font-size: 12px; }
+    #panel .value { font-size: 11px; }
+  }
+
+  #explore-btn {
+    background: #2d2d48; border: 1px solid #534AB7; color: #d8d8e2;
+    padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer;
+    margin-left: 8px; font-weight: 500;
+  }
+  #explore-btn:hover { background: #3C3489; color: #fff; }
+
+  #modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(10,10,16,0.72);
+    z-index: 100; align-items: center; justify-content: center; padding: 16px;
+  }
+  #modal-overlay.open { display: flex; }
+  #modal-box {
+    background: #1c1c2e; border: 1px solid #3a3a55; border-radius: 12px;
+    max-width: 760px; width: 100%; max-height: 88vh; overflow-y: auto;
+    padding: 22px 24px; position: relative;
+  }
+  #modal-close {
+    position: absolute; top: 14px; right: 14px; background: #23233a;
+    border: 1px solid #3a3a55; color: #f2f2f5; border-radius: 6px;
+    width: 28px; height: 28px; cursor: pointer; font-size: 14px; line-height: 1;
+  }
+  #modal-close:hover { background: #2d2d48; }
+  .modal-cat { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: #9a9aa8; margin: 0 0 4px; }
+  .modal-h { font-size: 18px; font-weight: 700; margin: 0 0 12px; padding-right: 30px; }
+  .modal-section { margin-bottom: 16px; }
+  .modal-section h4 {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+    color: #b7b7c4; margin: 0 0 6px; border-bottom: 1px solid #2a2a3d; padding-bottom: 4px;
+  }
+  .modal-section p { font-size: 13px; line-height: 1.5; margin: 0 0 6px; color: #e4e4ea; }
+  .modal-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .modal-tag {
+    background: #23233a; border: 1px solid #3a3a55; border-radius: 999px;
+    padding: 3px 10px; font-size: 11px; color: #d8d8e2;
+  }
+  .modal-issues { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .modal-issues li {
+    background: #23233a; border: 1px solid #2a2a3d; border-radius: 8px;
+    padding: 8px 10px; font-size: 12px; line-height: 1.4;
+  }
+  .modal-issues li b { color: #ffb199; }
+  .modal-issues li .fix { color: #9adbb8; display: block; margin-top: 3px; }
+  .modal-placeholder { color: #7d7d92; font-style: italic; }
+
+  @media (max-width: 700px), (max-height: 480px) {
+    #modal-overlay { padding: 0; }
+    #modal-box { max-width: none; width: 100%; height: 100%; max-height: none; border-radius: 0; }
+    .modal-h { font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Explorer Bank — Actimize customer journey simulation</h1>
+  <p id="subtitle">4 customers, 4 outcomes — clean, closed-alert, screened-clean wire, and an actual SAR — click nodes to explore, or press Play to move step by step.</p>
+
+</header>
+
+<div class="users" id="users-row"></div>
+
+<div class="topbar">
+  <div class="legend" id="legend-row"></div>
+  <div class="controls">
+    <button id="resetBtn">⟲ Reset</button>
+    <button id="prevBtn">◀ Back</button>
+    <button id="playBtn">▶ Next step</button>
+    <button id="playAllBtn">▶▶ Play all</button>
+    <span id="stepcount" style="align-self:center;"></span>
+  </div>
+</div>
+
+<div id="stage-wrap">
+<svg id="svg" xmlns="http://www.w3.org/2000/svg">
+  <g id="lines"></g>
+  <circle id="moving-dot" r="10" cx="0" cy="0"></circle>
+  <g id="nodes"></g>
+</svg>
+</div>
+
+<div id="table-wrap">
+  <p id="table-caption">System data at this step</p>
+  <div id="table-scroll"><table id="data-table"></table></div>
+</div>
+
+<div id="panel">
+  <p class="cat" id="p-cat">Ready</p>
+  <p class="title"><span id="p-title">Click "Play next step" to begin, or click any node directly.</span><button id="explore-btn">🔍 Explore in depth</button></p>
+  <div class="row">
+    <div class="col"><p class="label">Who / what does it</p><p class="value" id="p-who">—</p></div>
+    <div class="col"><p class="label">What happens</p><p class="value" id="p-desc">—</p></div>
+    <div class="col"><p class="label">Example data</p><p class="value" id="p-example">—</p></div>
+  </div>
+</div>
+
+<div id="modal-overlay">
+  <div id="modal-box">
+    <button id="modal-close">✕</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script>
+const colors = { purple:"#7F77DD", coral:"#D85A30", teal:"#1D9E75", pink:"#D4537E" };
+
+const customers = [
+  { key:"hemanth", name:"Hemanth", tag:"New — clean, no alerts", color:"#7F77DD" },
+  { key:"jairam", name:"Jairam", tag:"New — alert, closed no SAR", color:"#D4537E" },
+  { key:"manoj", name:"Manoj", tag:"Existing — SWIFT, screened clean", color:"#1D9E75" },
+  { key:"shiva", name:"Shiva", tag:"Existing — CTR + SAR filed", color:"#D85A30" }
+];
+
+const nodes = [
+  { label:"Branch visit", sub:"In person", color:"purple",
+    cat:"Branch & CRM", who:"Bank manager", desc:"Hemanth and Jairam visit the branch and hand over original ID and income documents for verification. Manoj isn't here — he's an existing customer and skips onboarding entirely.", example:"Passport (Hemanth) and driver's license (Jairam) checked in person.",
+    table:{ columns:["Customer","Document shown","Verified by","Branch"], rows:[
+      ["Hemanth","Passport","Bank manager","Explorer Bank — Lakeview Branch"],
+      ["Jairam","Driver's license","Bank manager","Explorer Bank — Lakeview Branch"]
+    ]},
+    detail:{
+      systems:["Salesforce (manual entry)"],
+      contact:"Branch operations manager — add your team's name/phone here",
+      commonIssues:[
+        {issue:"ID document illegible, expired, or name mismatch vs. application", fix:"Branch manager re-verifies in person before proceeding"}
+      ],
+      license:"Branch staff need core banking + Salesforce access provisioned by IT security"
+    }
+  },
+  { label:"Salesforce", sub:"Lead created", color:"purple",
+    cat:"Branch & CRM", who:"Bank manager", desc:"A Lead / Opportunity record is created for each new customer with basic details.", example:"LEAD-9001 (Hemanth), LEAD-9002 (Jairam).",
+    table:{ columns:["Lead ID","Customer","Product requested","Status"], rows:[
+      ["LEAD-9001","Hemanth","Savings account","New"],
+      ["LEAD-9002","Jairam","Savings + personal loan","New"]
+    ]},
+    detail:{
+      systems:["Salesforce CRM"],
+      contact:"Salesforce admin / CRM support team — add your contact here",
+      commonIssues:[
+        {issue:"Lead stuck in 'New' status, never routes to the KYC queue", fix:"Salesforce admin checks workflow/assignment rules; logs a ticket if a rule is broken"}
+      ],
+      license:"Salesforce user license + correct profile/permission set per branch role"
+    }
+  },
+  { label:"ArgoKeys", sub:"KYC capture", color:"purple",
+    cat:"Branch & CRM", who:"Bank manager", desc:"Verified ID details are typed into ArgoKeys, which auto-pushes into Salesforce.", example:"Passport A1234567, DOB 1990-04-12 (Hemanth).",
+    table:{ columns:["Customer ID","Customer","ID type / number","DOB","Address"], rows:[
+      ["CUST-58210","Hemanth","Passport A1234567","1990-04-12","12 Maple St, Lakeview"],
+      ["CUST-58211","Jairam","Driver's License D9988776","1993-11-02","45 Oak Ave, Lakeview"]
+    ]},
+    detail:{
+      systems:["ArgoKeys KYC platform"],
+      contact:"ArgoKeys support / platform vendor helpdesk — add your contact here",
+      commonIssues:[
+        {issue:"ArgoKeys → Salesforce sync fails silently, record never appears", fix:"Integration/support team checks middleware logs; open a support ticket if the sync job errored"}
+      ],
+      license:"ArgoKeys seat license per branch user, provisioned by IT"
+    }
+  },
+  { label:"Screening", sub:"RDC / LexisNexis / Bridger", color:"coral",
+    cat:"Screening & risk", who:"Automated (background)", desc:"Onboarding screening checks new names against sanctions, PEP, and adverse-media lists. Manoj and Shiva were screened this way years ago at their own onboarding — as existing customers, their transactions get re-screened per activity later at Step 10.", example:"Hemanth: clear. Jairam: clear.",
+    table:{ columns:["Customer","RDC","LexisNexis","Bridger","Result"], rows:[
+      ["Hemanth","Clear","Clear","Clear","Clear"],
+      ["Jairam","Clear","Clear","Clear","Clear"]
+    ]},
+    detail:{
+      systems:["RDC","LexisNexis","Bridger"],
+      contact:"AML screening support team — add your contact here",
+      commonIssues:[
+        {issue:"False-positive name match blocks onboarding (common name, similar spelling)", fix:"Compliance analyst manually reviews and clears the match"},
+        {issue:"Vendor data feed fails to refresh (stale watchlist)", fix:"Screening support team checks feed job; escalate to vendor if refresh is broken"}
+      ],
+      license:"Vendor data-feed subscriptions (RDC / LexisNexis / Bridger) renew on a schedule — tracked in the License files folder; renewal owned by Compliance/Procurement"
+    }
+  },
+  { label:"Drawloop", sub:"Docs signed", color:"purple",
+    cat:"Branch & CRM", who:"Automated + e-signature", desc:"Agreements are pre-filled from Salesforce, signed electronically, and archived.", example:"Savings T&Cs (both); loan agreement (Jairam).",
+    table:{ columns:["Customer","Document","Signed","Stored in"], rows:[
+      ["Hemanth","Savings T&Cs","Yes","Imaging"],
+      ["Jairam","Savings T&Cs + loan agreement","Yes","Imaging"]
+    ]},
+    detail:{
+      systems:["Drawloop e-signature"],
+      contact:"Drawloop admin — add your contact here",
+      commonIssues:[
+        {issue:"Document template outdated after a policy or rate change", fix:"Drawloop admin updates the template; old signed docs are unaffected"}
+      ],
+      license:"Drawloop subscription tied to the Salesforce org"
+    }
+  },
+  { label:"Core banking", sub:"via MuleSoft", color:"teal",
+    cat:"Core banking & data", who:"Automated integration (MuleSoft)", desc:"Approved data is pushed via API into Silverlake, and LoanIQ for Jairam's loan, creating the real account. No one retypes it. Manoj's and Shiva's accounts already exist here from years ago.", example:"SAV-100234 (Hemanth), SAV-100235 + LN-77410 (Jairam), SAV-40021 (Manoj, opened 2015), SAV-40598 (Shiva, opened 2018).",
+    table:{ columns:["Customer","Account type","Account no.","System"], rows:[
+      ["Hemanth","Savings","SAV-100234","Silverlake"],
+      ["Jairam","Savings","SAV-100235","Silverlake"],
+      ["Jairam","Personal loan ($45,000)","LN-77410","LoanIQ"],
+      ["Manoj","Savings (since 2015)","SAV-40021","Silverlake"],
+      ["Shiva","Savings (since 2018)","SAV-40598","Silverlake"]
+    ]},
+    detail:{
+      systems:["MuleSoft","Silverlake","LoanIQ","CyberArk (privileged access for integration service accounts)"],
+      contact:"Core banking integration team — add your contact here",
+      commonIssues:[
+        {issue:"MuleSoft API timeout or failure — account not created in Silverlake", fix:"Integration/middleware on-call engineer investigates; a ServiceNow incident is logged if manual intervention is needed"}
+      ],
+      license:"MuleSoft API license + Silverlake/LoanIQ user provisioning; integration service accounts vaulted in CyberArk"
+    }
+  },
+  { label:"EDW load", sub:"Nightly batch", color:"teal",
+    cat:"Core banking & data", who:"Automated (Cybermation)", desc:"Every account, new or existing, feeds into the Enterprise Data Warehouse overnight — including Manoj's SWIFT activity and Shiva's cash deposits and wires.", example:"ACCOUNT.DAT, PARTY.DAT, LOAN.DAT, TRANSACTIONS.DAT.",
+    table:{ columns:["Customer","Source file(s)","Load time"], rows:[
+      ["Hemanth","ACCOUNT.DAT, PARTY.DAT","11:00 PM batch"],
+      ["Jairam","ACCOUNT.DAT, PARTY.DAT, LOAN.DAT","11:00 PM batch"],
+      ["Manoj","TRANSACTIONS.DAT","11:00 PM batch"],
+      ["Shiva","TRANSACTIONS.DAT","11:00 PM batch"]
+    ]},
+    detail:{
+      systems:["Cybermation (batch scheduler)","EDW","SolarWinds (infra monitoring)"],
+      contact:"Data warehouse / batch ops team — add your contact here",
+      commonIssues:[
+        {issue:"Nightly batch job fails or runs late, downstream scoring delayed", fix:"Cybermation batch ops on-call investigates; SolarWinds fires the infra alert; a ServiceNow ticket is raised if a manual rerun is needed"}
+      ],
+      license:"n/a — internal infrastructure, not a licensed vendor product"
+    }
+  },
+  { label:"UDM", sub:"Staging → CDS → EBK schemas", color:"teal",
+    cat:"Core banking & data", who:"Automated (AIS data loader)", desc:"Before CDD or SAM can score or scan anything, the raw EDW extract has to land inside Actimize's own Unified Data Model. It first hits the Staging schema for validation, then migrates into the CDS schema (the long-term customer/account store CDD and SAM actually query), and select fields sync to the bank's own reporting schema (EBK, short for Explorer Bank). If this load fails or lags, every downstream check runs on stale data — this is why UDM health is watched closely by ops.", example:"All four customers' account and transaction records now sit in UDM.CDS, ready for scoring.",
+    table:{ columns:["Customer","UDM schema","Status"], rows:[
+      ["Hemanth","CDS","Loaded"],
+      ["Jairam","CDS","Loaded"],
+      ["Manoj","CDS","Loaded"],
+      ["Shiva","CDS","Loaded"]
+    ]},
+    detail:{
+      systems:["Actimize AIS data loader","UDM (Staging / CDS / EBK schemas)","DataIQ (data quality/plugin layer)"],
+      contact:"Actimize platform support team — add your contact here",
+      commonIssues:[
+        {issue:"Staging → CDS migration lags, stale data reaches CDD/SAM", fix:"Actimize platform admin checks the loader job; tracked under the platform's DataIQ plugin issue log"},
+        {issue:"DataIQ plugin errors during load", fix:"Platform team reviews DataIQ plugin logs, restarts the job if needed"}
+      ],
+      license:"Actimize AIS server license + DataIQ module license"
+    }
+  },
+  { label:"AIS / CDD", sub:"Risk score", color:"pink",
+    cat:"Compliance engine", who:"Automated rules engine", desc:"Actimize reads UDM data and scores each customer's KYC risk. Existing customers like Manoj and Shiva are re-scored periodically too, not just at onboarding — this is the Customer Risk Rating (CRR) that drives how often and how closely each customer's activity gets reviewed.", example:"Hemanth: Low. Jairam: Medium (new loan). Manoj: Medium (frequent international wires). Shiva: Medium (large cash + wire activity), pending re-rating after Step 13.",
+    table:{ columns:["Customer","CDD risk score (CRR)","Reason"], rows:[
+      ["Hemanth","Low","Standard profile"],
+      ["Jairam","Medium","New loan relationship"],
+      ["Manoj","Medium","Frequent international wires"],
+      ["Shiva","Medium","Large cash deposits + wire activity"]
+    ]},
+    detail:{
+      systems:["Actimize AIS — CDD module"],
+      contact:"Compliance technology team — add your contact here",
+      commonIssues:[
+        {issue:"Risk scoring model misfires — wrong CRR assigned", fix:"Compliance model owner reviews scoring rules; logged as a JIRA issue against the CDD module"}
+      ],
+      license:"Actimize CDD module license"
+    }
+  },
+  { label:"AIS / SAM", sub:"Transaction watch (+ ThetaRay)", color:"pink",
+    cat:"Compliance engine", who:"Automated rules engine", desc:"Ongoing transactions are scanned continuously for suspicious patterns — this is where Manoj's and Shiva's activity gets checked every time it happens. ThetaRay is an AI-based transaction monitoring tool sometimes run alongside SAM here, not part of onboarding screening.", example:"Jairam's near-$10k transfers raise Alert SAM148223. Manoj's $28,000 SWIFT wire to Singapore passes clean. Shiva's $15,000 cash deposit and $50,000 wire to a beneficiary at another bank both get flagged for separate reasons.",
+    table:{ columns:["Customer","Activity","SAM result"], rows:[
+      ["Hemanth","Payroll deposits, normal bill pay","No alert"],
+      ["Jairam","Transfers: $9,700 / $9,500 / $9,800 in one week","Alert SAM148223 (structuring)"],
+      ["Manoj","$28,000 SWIFT wire to Singapore","Screened clean"],
+      ["Shiva","$15,000 cash deposit","Flagged — over CTR threshold"],
+      ["Shiva","$50,000 wire to Rajesh Menon, Meridian National Bank","Alert SAM148390 (beneficiary risk)"]
+    ]},
+    detail:{
+      systems:["Actimize AIS — SAM module","Mantas (SAM's underlying scenario engine)","ThetaRay"],
+      contact:"Transaction monitoring team — add your contact here",
+      commonIssues:[
+        {issue:"Alert volume spikes / scenario needs tuning", fix:"AML model tuning team adjusts Mantas scenario thresholds"},
+        {issue:"Alert attachment fails to save to the case", fix:"Platform support checks the alert-attachment service; tracked as an 'attachment issue'"}
+      ],
+      license:"Actimize SAM module + Mantas scenario license + ThetaRay license"
+    }
+  },
+  { label:"CTR filing", sub:"Currency Transaction Report", color:"pink",
+    cat:"Compliance engine", who:"Automated (threshold-based)", desc:"Any cash transaction over $10,000 in a single day automatically generates a Currency Transaction Report — this is separate from a SAR. No suspicion is implied and no analyst investigation happens; it's routine record-keeping filed with FinCEN because the law requires it for every large cash movement, clean or not.", example:"Shiva's $15,000 cash deposit auto-generates a CTR the same day — no case, no alert review needed for this part.",
+    table:{ columns:["Customer","Transaction","CTR filed?"], rows:[
+      ["Hemanth","No cash transactions over $10,000","No"],
+      ["Jairam","No cash transactions over $10,000","No"],
+      ["Manoj","No cash transactions over $10,000","No"],
+      ["Shiva","$15,000 cash deposit","Yes — CTR-2026-03311"]
+    ]},
+    detail:{
+      systems:["Actimize/DART regulatory routing"],
+      contact:"Regulatory reporting team — add your contact here",
+      commonIssues:[
+        {issue:"CTR not auto-filed due to threshold misconfiguration", fix:"Regulatory reporting analyst files manually, then the support team fixes the rule"}
+      ],
+      license:"n/a — automated regulatory process, no separate license"
+    }
+  },
+  { label:"ActOne", sub:"Case opened", color:"pink",
+    cat:"Compliance engine", who:"Compliance analyst", desc:"Real SAM alerts (not the automatic CTR) get investigated — analyst reviews transactions and contacts the customer. Manoj's wire didn't raise an alert this time, so no case opens for him here.", example:"Case CASE-90456 opened for Jairam's structuring alert. Case CASE-90512 opened for Shiva's flagged wire to Rajesh Menon.",
+    table:{ columns:["Case ID","Customer","Alert linked","Analyst action"], rows:[
+      ["CASE-90456","Jairam","SAM148223","Reviewed transactions, contacted customer"],
+      ["CASE-90512","Shiva","SAM148390","Reviewed wire purpose, researched beneficiary, requested supporting documents"]
+    ]},
+    detail:{
+      systems:["ActOne case management","UiPath (RPA for investigator due-diligence lookups)"],
+      contact:"AML investigations team lead — add your contact here",
+      commonIssues:[
+        {issue:"Case stuck unassigned in the queue", fix:"ActOne admin reassigns it; investigations team lead escalates if it's aging"},
+        {issue:"UiPath automated lookup task fails silently", fix:"Investigator flags it, RPA support team restarts the task and checks the bot log"}
+      ],
+      license:"ActOne analyst seat license + UiPath robot license"
+    }
+  },
+  { label:"Case outcome", sub:"Closed / SAR?", color:"pink",
+    cat:"Compliance engine", who:"Compliance analyst", desc:"Each case is closed with a documented finding. A SAR is filed only when activity is genuinely suspicious and can't be explained — this is where Jairam's and Shiva's cases take different paths, showing both possible outcomes.", example:"Jairam: closed, legitimate contractor payments, no SAR. Shiva: beneficiary tied to adverse media, no consistent business rationale given — case escalated and a SAR is filed with FinCEN.",
+    table:{ columns:["Case ID","Customer","Disposition","SAR filed?"], rows:[
+      ["CASE-90456","Jairam","Closed — no suspicious activity found","No"],
+      ["CASE-90512","Shiva","Escalated — beneficiary adverse media, inconsistent rationale","Yes — SAR-2026-00147"]
+    ]},
+    detail:{
+      systems:["ActOne","DART (regulatory filing routing)"],
+      contact:"Compliance manager / SAR filing officer — add your contact here",
+      commonIssues:[
+        {issue:"SAR filing deadline at risk (FinCEN requires filing within 30 days of detection)", fix:"Compliance manager escalates immediately to the filing officer — this is time-critical, not a routine ticket"}
+      ],
+      license:"n/a"
+    }
+  },
+  { label:"Inter-bank screening", sub:"Counterparty & 314(b) sharing", color:"coral",
+    cat:"Screening & risk", who:"Both banks, independently", desc:"When Shiva wires $50,000 to Rajesh Menon at Meridian National Bank, Explorer Bank screens Rajesh (the beneficiary) against OFAC/sanctions lists before releasing the payment — this is required for every outgoing wire, not just the sender. Meridian separately runs its own AML screening on the incoming payment using its own systems; Explorer Bank doesn't see their internal case data, and they don't see ours. Only the details in the SWIFT payment message itself (name, account, bank, purpose) travel with the wire. If either bank suspects something, both can legally share limited extra information directly under the PATRIOT Act's Section 314(b) safe harbor, outside normal payment channels.", example:"Rajesh Menon is screened twice, independently — once by Explorer Bank before sending, once by Meridian on arrival.",
+    table:{ columns:["Step","Who does it","What's shared"], rows:[
+      ["Outgoing screening","Explorer Bank (sender)","Beneficiary name/account only, via SWIFT MT103 message"],
+      ["Incoming screening","Meridian National Bank (receiver)","Independent — uses their own AML/Actimize-equivalent system"],
+      ["If concern arises","Either bank","Can share more detail via Section 314(b), outside the payment message"]
+    ]},
+    detail:{
+      systems:["SWIFT MT103 messaging","OFAC/sanctions screening"],
+      contact:"Wire operations / sanctions compliance team — add your contact here",
+      commonIssues:[
+        {issue:"Beneficiary bank rejects the wire for missing/incomplete information", fix:"Wire ops team corrects the message and resubmits"}
+      ],
+      license:"n/a — governed by SWIFT network rules + OFAC regulation, not a purchased license"
+    }
+  },
+  { label:"AVA & ongoing", sub:"Dashboards", color:"pink",
+    cat:"Compliance engine", who:"Automated dashboards", desc:"AVA dashboards track everything, and all four accounts continue under standard ongoing monitoring going forward — Shiva's risk score is now re-rated higher following the SAR.", example:"Hemanth, Jairam, and Manoj continue as normal, monitored customers. Shiva continues too, but now under closer, high-risk monitoring.",
+    table:{ columns:["Customer","Status","Risk score"], rows:[
+      ["Hemanth","Active","Low"],
+      ["Jairam","Active","Medium"],
+      ["Manoj","Active","Medium"],
+      ["Shiva","Active — enhanced monitoring","High"]
+    ]},
+    detail:{
+      systems:["AVA (Tableau-based dashboards)"],
+      contact:"Compliance reporting / AVA dashboard owner — add your contact here",
+      commonIssues:[
+        {issue:"Dashboard data lagging or showing stale numbers", fix:"AVA/Tableau admin checks the data refresh job"}
+      ],
+      license:"AVA / Tableau license"
+    }
+  }
+];
+
+const svgNS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById("svg");
+const linesG = document.getElementById("lines");
+const nodesG = document.getElementById("nodes");
+const dot = document.getElementById("moving-dot");
+const stageWrap = document.getElementById("stage-wrap");
+
+const MOBILE_DIAGRAM_HEIGHT = 170;
+
+function isMobile() {
+  return window.matchMedia("(max-width: 700px)").matches;
+}
+
+function computeLayout() {
+  const n = nodes.length;
+  const mobile = isMobile();
+  const positions = [];
+  let vbWidth, vbHeight;
+
+  if (mobile) {
+    const spacing = 170, startX = 90, y = 95;
+    for (let i = 0; i < n; i++) { positions.push({ x: startX + i * spacing, y: y }); }
+    vbWidth = startX * 2 + (n - 1) * spacing;
+    vbHeight = 190;
+  } else {
+    const cols = 3, colSpacing = 450, rowSpacing = 200, startX = 150, startY = 100;
+    const rows = Math.ceil(n / cols);
+    for (let i = 0; i < n; i++) {
+      const row = Math.floor(i / cols);
+      let col = i % cols;
+      if (row % 2 === 1) col = cols - 1 - col;
+      positions.push({ x: startX + col * colSpacing, y: startY + row * rowSpacing });
+    }
+    vbWidth = startX * 2 + (cols - 1) * colSpacing;
+    vbHeight = startY * 2 + (rows - 1) * rowSpacing + 150;
+  }
+  return { positions, vbWidth, vbHeight, mobile };
+}
+
+function renderCustomers() {
+  document.getElementById("users-row").innerHTML = customers.map(function(c) {
+    return '<div class="chip" style="border-color:' + c.color + '">' +
+      '<span class="dot" style="background:' + c.color + '"></span>' +
+      '<span class="chip-name">' + c.name + '</span>' +
+      '<span class="chip-tag">' + c.tag + '</span></div>';
+  }).join("");
+
+  document.getElementById("legend-row").innerHTML =
+    '<span><span class="dot-swatch" style="background:#7F77DD;"></span>Branch &amp; CRM</span>' +
+    '<span><span class="dot-swatch" style="background:#D85A30;"></span>Screening &amp; risk</span>' +
+    '<span><span class="dot-swatch" style="background:#1D9E75;"></span>Core banking &amp; data</span>' +
+    '<span><span class="dot-swatch" style="background:#D4537E;"></span>Compliance engine &amp; reporting</span>';
+}
+
+function buildDiagram() {
+  const layout = computeLayout();
+  layout.positions.forEach(function(p, i) { nodes[i].x = p.x; nodes[i].y = p.y; });
+
+  svg.setAttribute("viewBox", "0 0 " + layout.vbWidth + " " + layout.vbHeight);
+
+  if (layout.mobile) {
+    const scale = MOBILE_DIAGRAM_HEIGHT / layout.vbHeight;
+    svg.style.width = Math.round(layout.vbWidth * scale) + "px";
+    svg.style.height = MOBILE_DIAGRAM_HEIGHT + "px";
+    stageWrap.style.height = MOBILE_DIAGRAM_HEIGHT + "px";
+  } else {
+    svg.style.width = "100%";
+    svg.style.height = "100%";
+    stageWrap.style.height = "";
+  }
+
+  linesG.innerHTML = "";
+  nodesG.innerHTML = "";
+
+  for (let i = 0; i < nodes.length - 1; i++) {
+    const a = nodes[i], b = nodes[i + 1];
+    const line = document.createElementNS(svgNS, "line");
+    line.setAttribute("x1", a.x); line.setAttribute("y1", a.y);
+    line.setAttribute("x2", b.x); line.setAttribute("y2", b.y);
+    line.setAttribute("class", "flow-line" + (i < current ? " done" : ""));
+    line.setAttribute("id", "line-" + i);
+    linesG.appendChild(line);
+  }
+
+  nodes.forEach(function(n, i) {
+    const g = document.createElementNS(svgNS, "g");
+    g.setAttribute("data-idx", i);
+    g.style.cursor = "pointer";
+    g.addEventListener("click", function() { jumpTo(i); });
+
+    const circle = document.createElementNS(svgNS, "circle");
+    circle.setAttribute("cx", n.x); circle.setAttribute("cy", n.y);
+    circle.setAttribute("r", 46);
+    circle.setAttribute("fill", colors[n.color]);
+    circle.setAttribute("class", "node-circle" + (i === current ? " active" : i < current ? " visited" : ""));
+    circle.setAttribute("id", "circ-" + i);
+    g.appendChild(circle);
+
+    const stepNum = document.createElementNS(svgNS, "text");
+    stepNum.setAttribute("x", n.x); stepNum.setAttribute("y", n.y - 58);
+    stepNum.setAttribute("class", "step-num");
+    stepNum.textContent = "Step " + (i + 1);
+    g.appendChild(stepNum);
+
+    const label = document.createElementNS(svgNS, "text");
+    label.setAttribute("x", n.x); label.setAttribute("y", n.y - 4);
+    label.setAttribute("class", "node-label");
+    label.textContent = n.label;
+    g.appendChild(label);
+
+    const sub = document.createElementNS(svgNS, "text");
+    sub.setAttribute("x", n.x); sub.setAttribute("y", n.y + 16);
+    sub.setAttribute("class", "node-sub");
+    sub.textContent = n.sub;
+    g.appendChild(sub);
+
+    nodesG.appendChild(g);
+  });
+
+  const idx = current < 0 ? 0 : current;
+  dot.setAttribute("cx", nodes[idx].x);
+  dot.setAttribute("cy", nodes[idx].y);
+  nodesG.appendChild(dot);
+}
+
+let current = -1;
+let autoTimer = null;
+
+function rowClass(customerCell) {
+  const v = (customerCell || "").toLowerCase();
+  if (v.indexOf("hemanth") !== -1) return "hemanth-row";
+  if (v.indexOf("jairam") !== -1) return "jairam-row";
+  if (v.indexOf("manoj") !== -1) return "manoj-row";
+  if (v.indexOf("shiva") !== -1) return "shiva-row";
+  return "";
+}
+
+function renderTable(i) {
+  const n = nodes[i];
+  const table = document.getElementById("data-table");
+  if (!n.table) { table.innerHTML = ""; return; }
+  let html = "<thead><tr>";
+  n.table.columns.forEach(function(col) { html += "<th>" + col + "</th>"; });
+  html += "</tr></thead><tbody>";
+  n.table.rows.forEach(function(row) {
+    const cls = rowClass(row[0]);
+    html += "<tr>";
+    row.forEach(function(cell) { html += '<td class="' + cls + '">' + cell + "</td>"; });
+    html += "</tr>";
+  });
+  html += "</tbody>";
+  table.innerHTML = html;
+}
+
+function updatePanel(i) {
+  const n = nodes[i];
+  document.getElementById("p-cat").textContent = n.cat;
+  document.getElementById("p-title").textContent = "Step " + (i + 1) + " of " + nodes.length + " — " + n.label;
+  document.getElementById("p-who").textContent = n.who;
+  document.getElementById("p-desc").textContent = n.desc;
+  document.getElementById("p-example").textContent = n.example;
+  document.getElementById("stepcount").textContent = "Step " + (i + 1) + " / " + nodes.length;
+  renderTable(i);
+  document.getElementById("explore-btn").disabled = false;
+}
+
+function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function openModal(i) {
+  const n = nodes[i];
+  const d = n.detail;
+  let html = '<p class="modal-cat">' + esc(n.cat) + '</p>';
+  html += '<p class="modal-h">Step ' + (i + 1) + ' — ' + esc(n.label) + '</p>';
+  html += '<div class="modal-section"><h4>Overview</h4><p>' + esc(n.desc) + '</p><p><b>Example:</b> ' + esc(n.example) + '</p></div>';
+  if (d) {
+    html += '<div class="modal-section"><h4>Systems involved</h4><div class="modal-tags">' +
+      d.systems.map(function(s) { return '<span class="modal-tag">' + esc(s) + '</span>'; }).join("") + '</div></div>';
+    html += '<div class="modal-section"><h4>Who to contact</h4><p>' + esc(d.contact) + '</p></div>';
+    html += '<div class="modal-section"><h4>Common issues &amp; who fixes them</h4><ul class="modal-issues">' +
+      d.commonIssues.map(function(ci) {
+        return '<li><b>' + esc(ci.issue) + '</b><span class="fix">→ ' + esc(ci.fix) + '</span></li>';
+      }).join("") + '</ul></div>';
+    html += '<div class="modal-section"><h4>License / access</h4><p>' + esc(d.license) + '</p></div>';
+  } else {
+    html += '<div class="modal-section"><p class="modal-placeholder">No additional detail added for this step yet.</p></div>';
+  }
+  document.getElementById("modal-content").innerHTML = html;
+  document.getElementById("modal-overlay").classList.add("open");
+}
+
+function closeModal() {
+  document.getElementById("modal-overlay").classList.remove("open");
+}
+
+document.getElementById("explore-btn").addEventListener("click", function() {
+  if (current >= 0) openModal(current);
+});
+document.getElementById("modal-close").addEventListener("click", closeModal);
+document.getElementById("modal-overlay").addEventListener("click", function(e) {
+  if (e.target.id === "modal-overlay") closeModal();
+});
+document.addEventListener("keydown", function(e) {
+  if (e.key === "Escape") closeModal();
+});
+
+function setActive(i) {
+  document.querySelectorAll(".node-circle").forEach(function(c) { c.classList.remove("active"); });
+  const active = document.getElementById("circ-" + i);
+  if (active) active.classList.add("active");
+  for (let k = 0; k < i; k++) {
+    const c = document.getElementById("circ-" + k);
+    if (c) c.classList.add("visited");
+    const ln = document.getElementById("line-" + k);
+    if (ln) ln.classList.add("done");
+  }
+}
+
+function animateDot(fromIdx, toIdx, duration) {
+  const a = nodes[fromIdx], b = nodes[toIdx];
+  const start = performance.now();
+  function step(now) {
+    const t = Math.min(1, (now - start) / duration);
+    dot.setAttribute("cx", a.x + (b.x - a.x) * t);
+    dot.setAttribute("cy", a.y + (b.y - a.y) * t);
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function scrollNodeIntoView(i) {
+  const el = document.getElementById("circ-" + i);
+  if (el && el.scrollIntoView) {
+    el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }
+}
+
+function goToStep(i) {
+  if (i < 0 || i >= nodes.length) return;
+  const from = current < 0 ? 0 : current;
+  current = i;
+  setActive(i);
+  updatePanel(i);
+  if (from !== i) {
+    animateDot(from, i, 700);
+  } else {
+    dot.setAttribute("cx", nodes[i].x);
+    dot.setAttribute("cy", nodes[i].y);
+  }
+  if (isMobile()) scrollNodeIntoView(i);
+  document.getElementById("prevBtn").disabled = (current <= 0);
+  document.getElementById("playBtn").disabled = (current >= nodes.length - 1);
+}
+
+function jumpTo(i) {
+  stopAuto();
+  goToStep(i);
+}
+
+document.getElementById("playBtn").addEventListener("click", function() {
+  stopAuto();
+  goToStep(Math.min(current + 1, nodes.length - 1));
+});
+
+document.getElementById("prevBtn").addEventListener("click", function() {
+  stopAuto();
+  goToStep(Math.max(current - 1, 0));
+});
+
+document.getElementById("resetBtn").addEventListener("click", function() {
+  stopAuto();
+  current = -1;
+  buildDiagram();
+  document.getElementById("p-cat").textContent = "Ready";
+  document.getElementById("p-title").textContent = 'Click "Play next step" to begin, or click any node directly.';
+  document.getElementById("p-who").textContent = "—";
+  document.getElementById("p-desc").textContent = "—";
+  document.getElementById("p-example").textContent = "—";
+  document.getElementById("stepcount").textContent = "";
+  document.getElementById("prevBtn").disabled = true;
+  document.getElementById("playBtn").disabled = false;
+  document.getElementById("explore-btn").disabled = true;
+  document.getElementById("data-table").innerHTML = "";
+  closeModal();
+});
+
+function stopAuto() {
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+  document.getElementById("playAllBtn").textContent = "▶▶ Play all";
+}
+
+document.getElementById("playAllBtn").addEventListener("click", function() {
+  if (autoTimer) { stopAuto(); return; }
+  document.getElementById("playAllBtn").textContent = "⏸ Pause";
+  if (current >= nodes.length - 1) {
+    document.getElementById("resetBtn").click();
+  }
+  autoTimer = setInterval(function() {
+    if (current >= nodes.length - 1) { stopAuto(); return; }
+    goToStep(current + 1);
+  }, 1600);
+  goToStep(current < 0 ? 0 : current);
+});
+
+let resizeTimer = null;
+window.addEventListener("resize", function() {
+  if (resizeTimer) clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(buildDiagram, 150);
+});
+window.addEventListener("orientationchange", function() {
+  setTimeout(buildDiagram, 200);
+});
+
+document.getElementById("prevBtn").disabled = true;
+document.getElementById("explore-btn").disabled = true;
+renderCustomers();
+buildDiagram();
+</script>
+
+</body>
+</html>
