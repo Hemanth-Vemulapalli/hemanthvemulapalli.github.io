@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Actimize Customer Journey Simulation</title>
+<style>
+  html, body { height: 100%; overscroll-behavior: none; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background: #14141f;
+    color: #f2f2f5;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    height: 100vh;
+    height: 100dvh;
+  }
+  header {
+    padding: 8px 20px 2px;
+    text-align: center;
+    flex: 0 0 auto;
+  }
+  header h1 { margin: 0 0 2px; font-size: 16px; font-weight: 600; }
+  header p { margin: 0; color: #9a9aa8; font-size: 11px; }
+
+  .users {
+    display: flex; justify-content: center; gap: 8px; flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 6px 12px;
+    flex: 0 0 auto;
+  }
+  .user-card {
+    background: #1c1c2e; border: 1px solid #3a3a55; border-radius: 8px;
+    padding: 5px 10px; min-width: 160px; max-width: 220px; flex: 1 1 220px;
+  }
+  .user-card .name { font-size: 12px; font-weight: 600; margin: 0 0 1px; }
+  .user-card .role { font-size: 10px; color: #b7b7c4; margin: 0; line-height: 1.3; }
+
+  .topbar {
+    display: flex; justify-content: center; align-items: center; gap: 14px;
+    flex-wrap: wrap; padding: 4px 10px; flex: 0 0 auto;
+  }
+  .legend {
+    display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;
+    font-size: 10px; color: #b7b7c4;
+  }
+  .legend span { display: flex; align-items: center; gap: 4px; }
+  .dot-swatch { width: 8px; height: 8px; border-radius: 3px; display: inline-block; }
+
+  .controls {
+    display: flex; justify-content: center; gap: 6px; flex-wrap: wrap;
+  }
+  button {
+    background: #23233a; color: #f2f2f5; border: 1px solid #3a3a55;
+    padding: 5px 10px; border-radius: 6px; font-size: 11px; cursor: pointer;
+    font-weight: 500;
+  }
+  button:hover { background: #2d2d48; }
+  button:disabled { opacity: 0.4; cursor: default; }
+  #playAllBtn { background: #3C3489; border-color: #534AB7; }
+  #playAllBtn:hover { background: #453d9e; }
+
+  #stage-wrap {
+    max-width: 1240px; width: 100%; margin: 0 auto; padding: 0 10px;
+    flex: 1 1 auto; min-height: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  svg { width: 100%; height: 100%; max-height: 100%; display: block; }
+
+  .mobile-only { display: none; }
+
+  .node-circle { stroke: #14141f; stroke-width: 4; transition: filter 0.2s; cursor: pointer; }
+  .node-circle:hover { filter: brightness(1.15); }
+  .node-circle.active { stroke: #ffffff; stroke-width: 5; filter: drop-shadow(0 0 10px rgba(255,255,255,0.5)); }
+  .node-circle.visited { opacity: 0.55; }
+  .node-label { fill: #ffffff; font-size: 14px; font-weight: 600; text-anchor: middle; pointer-events: none; }
+  .node-sub { fill: #d8d8e2; font-size: 11px; text-anchor: middle; pointer-events: none; }
+  .step-num { fill: #9a9aa8; font-size: 13px; font-weight: 700; text-anchor: middle; pointer-events: none; }
+
+  .flow-line { stroke: #3a3a55; stroke-width: 3; fill: none; }
+  .flow-line.done { stroke: #534AB7; }
+
+  #moving-dot { fill: #ffe680; filter: drop-shadow(0 0 8px rgba(255,230,128,0.9)); }
+
+  #table-wrap {
+    max-width: 1240px; width: 100%; margin: 0 auto; padding: 0 16px;
+    flex: 0 0 auto; max-height: 22vh; overflow-y: auto;
+  }
+  #table-caption {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
+    color: #9a9aa8; margin: 0 0 3px;
+  }
+  #table-scroll { overflow-x: auto; border: 1px solid #3a3a55; border-radius: 6px; }
+  #data-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  #data-table th, #data-table td {
+    padding: 4px 10px; text-align: left; white-space: nowrap;
+    border-bottom: 1px solid #2a2a3d;
+  }
+  #data-table th {
+    background: #23233a; color: #d8d8e2; font-weight: 600; font-size: 10px;
+  }
+  #data-table tr:last-child td { border-bottom: none; }
+  #data-table td.hemanth-row { color: #b9c3f0; }
+  #data-table td.jairam-row { color: #f0c3d6; }
+  #data-table td.manoj-row { color: #a9e0cb; }
+
+  #panel {
+    background: #1c1c2e; border-top: 1px solid #3a3a55;
+    padding: 8px 20px; margin-top: 6px;
+    flex: 0 0 auto; max-height: 24vh; overflow-y: auto;
+  }
+  #panel .cat { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: #9a9aa8; margin: 0 0 2px; }
+  #panel .title { font-size: 13px; font-weight: 600; margin: 0 0 4px; }
+  #panel .row { display: flex; gap: 16px; flex-wrap: wrap; }
+  #panel .col { flex: 1; min-width: 160px; }
+  #panel .label { font-size: 10px; color: #9a9aa8; margin: 0 0 1px; }
+  #panel .value { font-size: 12px; margin: 0; line-height: 1.4; }
+  #stepcount { font-size: 11px; color: #9a9aa8; }
+
+  @media (min-width: 701px) and (max-width: 1024px) {
+    header { padding: 6px 16px 2px; }
+    header h1 { font-size: 15px; }
+    header p { font-size: 10px; }
+    .user-card { min-width: 140px; padding: 4px 9px; }
+    .user-card .role { font-size: 9px; }
+    .controls button { padding: 4px 9px; font-size: 10px; }
+    #table-wrap { max-height: 20vh; }
+    #panel { max-height: 22vh; }
+    #panel .title { font-size: 12px; }
+    #panel .value { font-size: 11px; }
+  }
+
+  @media (max-width: 700px), (max-height: 480px) {
+    #stage-wrap { display: none; }
+    .mobile-only { display: flex; }
+    header p { display: none; }
+    header h1 { font-size: 14px; }
+    header { padding: 4px 12px 0; }
+    .topbar .legend { display: none; }
+    .topbar { padding: 2px 8px; gap: 6px; }
+    .controls { gap: 4px; }
+    .controls button { padding: 4px 7px; font-size: 10px; }
+    #stepcount { display: none; }
+    .users {
+      flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden;
+      max-height: 44px; padding: 4px 10px;
+    }
+    .user-card { min-width: 150px; padding: 3px 8px; }
+    .user-card .role { display: none; }
+    #mobile-step { padding: 6px 10px; }
+    #mobile-step .badge { width: 48px; height: 48px; font-size: 12px; }
+    #table-wrap { max-height: 20vh; padding: 0 10px; }
+    #panel { max-height: 24vh; padding: 6px 12px; }
+    #panel .title { font-size: 12px; }
+    #panel .value { font-size: 11px; }
+  }
+
+  @media (max-height: 420px) {
+    .users { display: none; }
+    #mobile-step .badge { width: 40px; height: 40px; }
+    #table-wrap { max-height: 26vh; }
+    #panel { max-height: 26vh; }
+  }
+
+  #mobile-step {
+    flex: 1 1 auto; min-height: 0;
+    align-items: center; justify-content: center;
+    padding: 10px; gap: 10px;
+  }
+  #mobile-step .badge {
+    width: 64px; height: 64px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 13px; text-align: center; flex-shrink: 0;
+  }
+  #mobile-step .info { flex: 1; min-width: 0; }
+  #mobile-step .info .lbl { font-size: 15px; font-weight: 600; margin: 0 0 2px; }
+  #mobile-step .info .sub { font-size: 12px; color: #9a9aa8; margin: 0; }
+  #mobile-step .nav { display: flex; flex-direction: column; gap: 6px; }
+  #mobile-step .nav button { padding: 6px 10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Actimize customer journey — live simulation</h1>
+  <p>3 example customers show different paths through the same system — click nodes to explore, or press Play to move the data step by step.</p>
+</header>
+
+<div class="users">
+  <div class="user-card">
+    <p class="name">Hemanth — new customer</p>
+    <p class="role">Walks in today, opens a savings account only. Full onboarding, no alerts expected.</p>
+  </div>
+  <div class="user-card">
+    <p class="name">Jairam — new customer</p>
+    <p class="role">Walks in today, opens a savings account plus a personal loan. Full onboarding, and his post-loan transfers trigger a monitoring alert.</p>
+  </div>
+  <div class="user-card">
+    <p class="name">Manoj — existing customer</p>
+    <p class="role">Has banked here for years already. Skips onboarding (steps 1-6) and appears from the monitoring stage onward, sending international SWIFT wire transfers that get screened every time.</p>
+  </div>
+</div>
+
+<div class="topbar">
+  <div class="legend">
+    <span><span class="dot-swatch" style="background:#7F77DD;"></span>Branch &amp; CRM</span>
+    <span><span class="dot-swatch" style="background:#D85A30;"></span>Screening &amp; risk</span>
+    <span><span class="dot-swatch" style="background:#1D9E75;"></span>Core banking &amp; data</span>
+    <span><span class="dot-swatch" style="background:#D4537E;"></span>Compliance engine &amp; reporting</span>
+  </div>
+  <div class="controls">
+    <button id="resetBtn">⟲ Reset</button>
+    <button id="prevBtn">◀ Back</button>
+    <button id="playBtn">▶ Next step</button>
+    <button id="playAllBtn">▶▶ Play all</button>
+    <span id="stepcount" style="align-self:center;"></span>
+  </div>
+</div>
+
+<div id="stage-wrap">
+<svg id="svg" viewBox="0 0 1200 950" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+  <g id="lines"></g>
+  <circle id="moving-dot" r="10" cx="150" cy="100"></circle>
+  <g id="nodes"></g>
+</svg>
+</div>
+
+<div id="mobile-step" class="mobile-only">
+  <div class="badge" id="mobile-badge">1</div>
+  <div class="info">
+    <p class="lbl" id="mobile-label">Branch visit</p>
+    <p class="sub" id="mobile-sub">Step 1 / 12</p>
+  </div>
+  <div class="nav">
+    <button id="mobilePrevBtn">◀</button>
+    <button id="mobileNextBtn">▶</button>
+  </div>
+</div>
+
+<div id="table-wrap">
+  <p id="table-caption">System data at this step</p>
+  <div id="table-scroll"><table id="data-table"></table></div>
+</div>
+
+<div id="panel">
+  <p class="cat" id="p-cat">Ready</p>
+  <p class="title" id="p-title">Click "Play next step" to begin, or click any node directly.</p>
+  <div class="row">
+    <div class="col"><p class="label">Who / what does it</p><p class="value" id="p-who">—</p></div>
+    <div class="col"><p class="label">What happens</p><p class="value" id="p-desc">—</p></div>
+    <div class="col"><p class="label">Example data</p><p class="value" id="p-example">—</p></div>
+  </div>
+</div>
+
+<script>
+const colors = { purple:"#7F77DD", coral:"#D85A30", teal:"#1D9E75", pink:"#D4537E" };
+
+const nodes = [
+  { id:1, x:150, y:100, label:"Branch visit", sub:"In person", color:"purple",
+    cat:"Branch & CRM", who:"Bank manager", desc:"Hemanth and Jairam visit the branch and hand over original ID and income documents for verification. Manoj isn't here — he's an existing customer and skips onboarding entirely.", example:"Passport (Hemanth) and driver's license (Jairam) checked in person.",
+    table:{ columns:["Customer","Document shown","Verified by","Branch"], rows:[
+      ["Hemanth","Passport","Bank manager","Parsippany, NJ"],
+      ["Jairam","Driver's license","Bank manager","Parsippany, NJ"]
+    ]} },
+  { id:2, x:600, y:100, label:"Salesforce", sub:"Lead created", color:"purple",
+    cat:"Branch & CRM", who:"Bank manager", desc:"A Lead / Opportunity record is created for each new customer with basic details.", example:"LEAD-9001 (Hemanth), LEAD-9002 (Jairam).",
+    table:{ columns:["Lead ID","Customer","Product requested","Status"], rows:[
+      ["LEAD-9001","Hemanth","Savings account","New"],
+      ["LEAD-9002","Jairam","Savings + personal loan","New"]
+    ]} },
+  { id:3, x:1050, y:100, label:"ArgoKeys", sub:"KYC capture", color:"purple",
+    cat:"Branch & CRM", who:"Bank manager", desc:"Verified ID details are typed into ArgoKeys, which auto-pushes into Salesforce.", example:"Passport A1234567, DOB 1990-04-12 (Hemanth).",
+    table:{ columns:["Customer ID","Customer","ID type / number","DOB","Address"], rows:[
+      ["CUST-58210","Hemanth","Passport A1234567","1990-04-12","12 Maple St, NJ"],
+      ["CUST-58211","Jairam","Driver's License D9988776","1993-11-02","45 Oak Ave, NJ"]
+    ]} },
+  { id:4, x:1050, y:300, label:"Screening", sub:"RDC / LexisNexis / Bridger", color:"coral",
+    cat:"Screening & risk", who:"Automated (background)", desc:"Onboarding screening checks new names against sanctions, PEP, and adverse-media lists. Manoj was screened this way years ago at his own onboarding, but as an existing customer his SWIFT wires get re-screened per transaction later at Step 9.", example:"Hemanth: clear. Jairam: clear.",
+    table:{ columns:["Customer","RDC","LexisNexis","Bridger","Result"], rows:[
+      ["Hemanth","Clear","Clear","Clear","Clear"],
+      ["Jairam","Clear","Clear","Clear","Clear"]
+    ]} },
+  { id:5, x:600, y:300, label:"Drawloop", sub:"Docs signed", color:"purple",
+    cat:"Branch & CRM", who:"Automated + e-signature", desc:"Agreements are pre-filled from Salesforce, signed electronically, and archived.", example:"Savings T&Cs (both); loan agreement (Jairam).",
+    table:{ columns:["Customer","Document","Signed","Stored in"], rows:[
+      ["Hemanth","Savings T&Cs","Yes","Imaging"],
+      ["Jairam","Savings T&Cs + loan agreement","Yes","Imaging"]
+    ]} },
+  { id:6, x:150, y:300, label:"Core banking", sub:"via MuleSoft", color:"teal",
+    cat:"Core banking & data", who:"Automated integration (MuleSoft)", desc:"Approved data is pushed via API into Silverlake, and LoanIQ for Jairam's loan, creating the real account. No one retypes it. Manoj's account already exists here from years ago.", example:"SAV-100234 (Hemanth), SAV-100235 + LN-77410 (Jairam), SAV-40021 (Manoj, opened 2015).",
+    table:{ columns:["Customer","Account type","Account no.","System"], rows:[
+      ["Hemanth","Savings","SAV-100234","Silverlake"],
+      ["Jairam","Savings","SAV-100235","Silverlake"],
+      ["Jairam","Personal loan ($45,000)","LN-77410","LoanIQ"],
+      ["Manoj","Savings (since 2015)","SAV-40021","Silverlake"]
+    ]} },
+  { id:7, x:150, y:500, label:"EDW load", sub:"Nightly batch", color:"teal",
+    cat:"Core banking & data", who:"Automated (Cybermation)", desc:"Every account, new or existing, feeds into the Enterprise Data Warehouse overnight — including Manoj's ongoing SWIFT wire activity.", example:"ACCOUNT.DAT, PARTY.DAT, LOAN.DAT, TRANSACTIONS.DAT.",
+    table:{ columns:["Customer","Source file(s)","Load time"], rows:[
+      ["Hemanth","ACCOUNT.DAT, PARTY.DAT","11:00 PM batch"],
+      ["Jairam","ACCOUNT.DAT, PARTY.DAT, LOAN.DAT","11:00 PM batch"],
+      ["Manoj","TRANSACTIONS.DAT","11:00 PM batch"]
+    ]} },
+  { id:8, x:600, y:500, label:"AIS / CDD", sub:"Risk score", color:"pink",
+    cat:"Compliance engine", who:"Automated rules engine", desc:"Actimize loads EDW data and scores each customer's KYC risk. Existing customers like Manoj are re-scored periodically too, not just at onboarding.", example:"Hemanth: Low. Jairam: Medium (new loan). Manoj: Medium (frequent international wires).",
+    table:{ columns:["Customer","CDD risk score","Reason"], rows:[
+      ["Hemanth","Low","Standard profile"],
+      ["Jairam","Medium","New loan relationship"],
+      ["Manoj","Medium","Frequent international wires"]
+    ]} },
+  { id:9, x:1050, y:500, label:"AIS / SAM", sub:"Transaction watch (+ ThetaRay)", color:"pink",
+    cat:"Compliance engine", who:"Automated rules engine", desc:"Ongoing transactions are scanned continuously for suspicious patterns — this is where Manoj's SWIFT wires get checked every time he sends one. ThetaRay is an AI-based transaction monitoring tool sometimes run alongside SAM here, not part of onboarding screening.", example:"Jairam's near-$10k transfers raise Alert SAM148223. Manoj's $28,000 SWIFT wire to Singapore is screened against sanctions lists and passes clean.",
+    table:{ columns:["Customer","Activity","SAM result"], rows:[
+      ["Hemanth","Payroll deposits, normal bill pay","No alert"],
+      ["Jairam","Transfers: $9,700 / $9,500 / $9,800 in one week","Alert SAM148223 (structuring)"],
+      ["Manoj","$28,000 SWIFT wire to Singapore","Screened clean"]
+    ]} },
+  { id:10, x:1050, y:700, label:"ActOne", sub:"Case opened", color:"pink",
+    cat:"Compliance engine", who:"Compliance analyst", desc:"The alert is investigated — analyst reviews transactions and contacts the customer. Manoj's SWIFT wire didn't raise an alert this time, so no case opens for him here.", example:"Case CASE-90456 opened for Jairam only.",
+    table:{ columns:["Case ID","Customer","Alert linked","Analyst action"], rows:[
+      ["CASE-90456","Jairam","SAM148223","Reviewed transactions, contacted customer"]
+    ]} },
+  { id:11, x:600, y:700, label:"Case outcome", sub:"Closed / SAR?", color:"pink",
+    cat:"Compliance engine", who:"Compliance analyst", desc:"Case is closed with a documented finding. A SAR is filed only if activity is genuinely suspicious.", example:"Closed — legitimate contractor payments, no SAR filed.",
+    table:{ columns:["Case ID","Disposition","SAR filed?"], rows:[
+      ["CASE-90456","Closed — no suspicious activity found","No"]
+    ]} },
+  { id:12, x:150, y:700, label:"AVA & ongoing", sub:"Dashboards", color:"pink",
+    cat:"Compliance engine", who:"Automated dashboards", desc:"AVA dashboards track everything, and all three accounts continue under standard ongoing monitoring going forward.", example:"Hemanth, Jairam, and Manoj all continue as normal, monitored customers.",
+    table:{ columns:["Customer","Status","Risk score"], rows:[
+      ["Hemanth","Active","Low"],
+      ["Jairam","Active","Medium"],
+      ["Manoj","Active","Medium"]
+    ]} }
+];
+
+const svgNS = "http://www.w3.org/2000/svg";
+const linesG = document.getElementById("lines");
+const nodesG = document.getElementById("nodes");
+
+for (let i = 0; i < nodes.length - 1; i++) {
+  const a = nodes[i], b = nodes[i+1];
+  const line = document.createElementNS(svgNS, "line");
+  line.setAttribute("x1", a.x); line.setAttribute("y1", a.y);
+  line.setAttribute("x2", b.x); line.setAttribute("y2", b.y);
+  line.setAttribute("class", "flow-line");
+  line.setAttribute("id", "line-" + i);
+  linesG.appendChild(line);
+}
+
+nodes.forEach(function(n, i) {
+  const g = document.createElementNS(svgNS, "g");
+  g.setAttribute("data-idx", i);
+  g.style.cursor = "pointer";
+  g.addEventListener("click", function() { jumpTo(i); });
+
+  const circle = document.createElementNS(svgNS, "circle");
+  circle.setAttribute("cx", n.x); circle.setAttribute("cy", n.y);
+  circle.setAttribute("r", 46);
+  circle.setAttribute("fill", colors[n.color]);
+  circle.setAttribute("class", "node-circle");
+  circle.setAttribute("id", "circ-" + i);
+  g.appendChild(circle);
+
+  const stepNum = document.createElementNS(svgNS, "text");
+  stepNum.setAttribute("x", n.x); stepNum.setAttribute("y", n.y - 58);
+  stepNum.setAttribute("class", "step-num");
+  stepNum.textContent = "Step " + (i + 1);
+  g.appendChild(stepNum);
+
+  const label = document.createElementNS(svgNS, "text");
+  label.setAttribute("x", n.x); label.setAttribute("y", n.y - 4);
+  label.setAttribute("class", "node-label");
+  label.textContent = n.label;
+  g.appendChild(label);
+
+  const sub = document.createElementNS(svgNS, "text");
+  sub.setAttribute("x", n.x); sub.setAttribute("y", n.y + 16);
+  sub.setAttribute("class", "node-sub");
+  sub.textContent = n.sub;
+  g.appendChild(sub);
+
+  nodesG.appendChild(g);
+});
+
+let current = -1;
+let autoTimer = null;
+const dot = document.getElementById("moving-dot");
+
+function rowClass(customerCell) {
+  const v = (customerCell || "").toLowerCase();
+  if (v.indexOf("hemanth") !== -1) return "hemanth-row";
+  if (v.indexOf("jairam") !== -1) return "jairam-row";
+  if (v.indexOf("manoj") !== -1) return "manoj-row";
+  return "";
+}
+
+function renderTable(i) {
+  const n = nodes[i];
+  const table = document.getElementById("data-table");
+  if (!n.table) { table.innerHTML = ""; return; }
+  let html = "<thead><tr>";
+  n.table.columns.forEach(function(col) { html += "<th>" + col + "</th>"; });
+  html += "</tr></thead><tbody>";
+  n.table.rows.forEach(function(row) {
+    const cls = rowClass(row[0]);
+    html += "<tr>";
+    row.forEach(function(cell) { html += '<td class="' + cls + '">' + cell + "</td>"; });
+    html += "</tr>";
+  });
+  html += "</tbody>";
+  table.innerHTML = html;
+}
+
+function updatePanel(i) {
+  const n = nodes[i];
+  document.getElementById("p-cat").textContent = n.cat;
+  document.getElementById("p-title").textContent = "Step " + (i+1) + " of " + nodes.length + " — " + n.label;
+  document.getElementById("p-who").textContent = n.who;
+  document.getElementById("p-desc").textContent = n.desc;
+  document.getElementById("p-example").textContent = n.example;
+  document.getElementById("stepcount").textContent = "Step " + (i+1) + " / " + nodes.length;
+  renderTable(i);
+
+  const badge = document.getElementById("mobile-badge");
+  badge.textContent = (i + 1);
+  badge.style.background = colors[n.color];
+  document.getElementById("mobile-label").textContent = n.label;
+  document.getElementById("mobile-sub").textContent = "Step " + (i+1) + " / " + nodes.length + " — " + n.sub;
+}
+
+function setActive(i) {
+  document.querySelectorAll(".node-circle").forEach(function(c) { c.classList.remove("active"); });
+  document.getElementById("circ-" + i).classList.add("active");
+  for (let k = 0; k < i; k++) {
+    document.getElementById("circ-" + k).classList.add("visited");
+    const ln = document.getElementById("line-" + k);
+    if (ln) ln.classList.add("done");
+  }
+}
+
+function animateDot(fromIdx, toIdx, duration, callback) {
+  const a = nodes[fromIdx], b = nodes[toIdx];
+  const start = performance.now();
+  function step(now) {
+    const t = Math.min(1, (now - start) / duration);
+    dot.setAttribute("cx", a.x + (b.x - a.x) * t);
+    dot.setAttribute("cy", a.y + (b.y - a.y) * t);
+    if (t < 1) requestAnimationFrame(step);
+    else if (callback) callback();
+  }
+  requestAnimationFrame(step);
+}
+
+function goToStep(i) {
+  if (i < 0 || i >= nodes.length) return;
+  const from = current < 0 ? 0 : current;
+  current = i;
+  setActive(i);
+  updatePanel(i);
+  if (from !== i) {
+    animateDot(from, i, 700);
+  } else {
+    dot.setAttribute("cx", nodes[i].x);
+    dot.setAttribute("cy", nodes[i].y);
+  }
+  document.getElementById("prevBtn").disabled = (current <= 0);
+  document.getElementById("playBtn").disabled = (current >= nodes.length - 1);
+}
+
+function jumpTo(i) {
+  stopAuto();
+  goToStep(i);
+}
+
+document.getElementById("playBtn").addEventListener("click", function() {
+  stopAuto();
+  goToStep(Math.min(current + 1, nodes.length - 1));
+});
+
+document.getElementById("prevBtn").addEventListener("click", function() {
+  stopAuto();
+  goToStep(Math.max(current - 1, 0));
+});
+
+document.getElementById("mobileNextBtn").addEventListener("click", function() {
+  stopAuto();
+  goToStep(Math.min((current < 0 ? -1 : current) + 1, nodes.length - 1));
+});
+
+document.getElementById("mobilePrevBtn").addEventListener("click", function() {
+  stopAuto();
+  goToStep(Math.max(current - 1, 0));
+});
+
+document.getElementById("resetBtn").addEventListener("click", function() {
+  stopAuto();
+  document.querySelectorAll(".node-circle").forEach(function(c) { c.classList.remove("active", "visited"); });
+  document.querySelectorAll(".flow-line").forEach(function(l) { l.classList.remove("done"); });
+  current = -1;
+  dot.setAttribute("cx", nodes[0].x);
+  dot.setAttribute("cy", nodes[0].y);
+  document.getElementById("p-cat").textContent = "Ready";
+  document.getElementById("p-title").textContent = 'Click "Play next step" to begin, or click any node directly.';
+  document.getElementById("p-who").textContent = "—";
+  document.getElementById("p-desc").textContent = "—";
+  document.getElementById("p-example").textContent = "—";
+  document.getElementById("stepcount").textContent = "";
+  document.getElementById("prevBtn").disabled = true;
+  document.getElementById("playBtn").disabled = false;
+  document.getElementById("mobile-badge").textContent = "–";
+  document.getElementById("mobile-badge").style.background = "#3a3a55";
+  document.getElementById("mobile-label").textContent = "Not started";
+  document.getElementById("mobile-sub").textContent = "Tap ▶ to begin";
+  document.getElementById("data-table").innerHTML = "";
+});
+
+function stopAuto() {
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+  document.getElementById("playAllBtn").textContent = "▶▶ Play all";
+}
+
+document.getElementById("playAllBtn").addEventListener("click", function() {
+  if (autoTimer) { stopAuto(); return; }
+  document.getElementById("playAllBtn").textContent = "⏸ Pause";
+  if (current >= nodes.length - 1) {
+    document.getElementById("resetBtn").click();
+  }
+  autoTimer = setInterval(function() {
+    if (current >= nodes.length - 1) { stopAuto(); return; }
+    goToStep(current + 1);
+  }, 1600);
+  goToStep(current < 0 ? 0 : current);
+});
+
+document.getElementById("prevBtn").disabled = true;
+</script>
+
+</body>
+</html>
