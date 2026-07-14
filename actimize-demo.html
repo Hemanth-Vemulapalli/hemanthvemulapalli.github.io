@@ -26,17 +26,19 @@
   header p { margin: 0; color: #9a9aa8; font-size: 11px; }
 
   .users {
-    display: flex; justify-content: center; gap: 8px; flex-wrap: nowrap;
+    display: flex; gap: 6px; flex-wrap: nowrap;
     overflow-x: auto;
-    padding: 6px 12px;
+    padding: 5px 12px;
     flex: 0 0 auto;
   }
-  .user-card {
-    background: #1c1c2e; border: 1px solid #3a3a55; border-radius: 8px;
-    padding: 5px 10px; min-width: 160px; max-width: 220px; flex: 1 1 220px;
+  .chip {
+    display: flex; align-items: center; gap: 5px;
+    background: #1c1c2e; border: 1px solid #3a3a55; border-radius: 999px;
+    padding: 4px 10px; white-space: nowrap; flex-shrink: 0;
   }
-  .user-card .name { font-size: 12px; font-weight: 600; margin: 0 0 1px; }
-  .user-card .role { font-size: 10px; color: #b7b7c4; margin: 0; line-height: 1.3; }
+  .chip .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .chip .chip-name { font-size: 12px; font-weight: 600; }
+  .chip .chip-tag { font-size: 10px; color: #9a9aa8; }
 
   .topbar {
     display: flex; justify-content: center; align-items: center; gap: 14px;
@@ -68,9 +70,7 @@
     display: flex; align-items: stretch; justify-content: center;
     overflow: hidden;
   }
-  svg { width: 100%; height: 100%; display: block; }
-
-  .mobile-only { display: none; }
+  #svg { display: block; }
 
   .node-circle { stroke: #14141f; stroke-width: 4; transition: filter 0.2s; cursor: pointer; }
   .node-circle:hover { filter: brightness(1.15); }
@@ -124,8 +124,6 @@
     header { padding: 6px 16px 2px; }
     header h1 { font-size: 15px; }
     header p { font-size: 10px; }
-    .user-card { min-width: 140px; padding: 4px 9px; }
-    .user-card .role { font-size: 9px; }
     .controls button { padding: 4px 9px; font-size: 10px; }
     #table-wrap { max-height: 20vh; }
     #panel { max-height: 22vh; }
@@ -142,71 +140,36 @@
     .controls { gap: 4px; }
     .controls button { padding: 4px 7px; font-size: 10px; }
     #stepcount { display: none; }
-    .users {
-      flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden;
-      max-height: 40px; padding: 4px 10px;
+    .users { max-height: 32px; padding: 4px 10px; }
+    .chip { padding: 3px 8px; }
+    .chip .chip-name { font-size: 11px; }
+    .chip .chip-tag { font-size: 9px; }
+
+    #stage-wrap {
+      flex: 0 0 auto; align-items: center; justify-content: flex-start;
+      overflow-x: auto; overflow-y: hidden; padding: 4px;
     }
-    .user-card { min-width: 150px; padding: 3px 8px; }
-    .user-card .role { display: none; }
-    #stage-wrap { padding: 0 4px; }
-    #table-wrap { max-height: 18vh; padding: 0 8px; }
-    #panel { max-height: 22vh; padding: 6px 12px; }
+    #table-wrap { max-height: 26vh; padding: 0 8px; }
+    #panel {
+      flex: 1 1 auto; min-height: 0; max-height: none;
+      padding: 6px 12px;
+    }
     #panel .title { font-size: 12px; }
     #panel .value { font-size: 11px; }
   }
-
-  @media (max-height: 420px) {
-    .users { display: none; }
-    #table-wrap { max-height: 22vh; }
-    #panel { max-height: 22vh; }
-  }
-
-  #mobile-step {
-    flex: 1 1 auto; min-height: 0;
-    align-items: center; justify-content: center;
-    padding: 10px; gap: 10px;
-  }
-  #mobile-step .badge {
-    width: 64px; height: 64px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 600; font-size: 13px; text-align: center; flex-shrink: 0;
-  }
-  #mobile-step .info { flex: 1; min-width: 0; }
-  #mobile-step .info .lbl { font-size: 15px; font-weight: 600; margin: 0 0 2px; }
-  #mobile-step .info .sub { font-size: 12px; color: #9a9aa8; margin: 0; }
-  #mobile-step .nav { display: flex; flex-direction: column; gap: 6px; }
-  #mobile-step .nav button { padding: 6px 10px; }
 </style>
 </head>
 <body>
 
 <header>
   <h1>Actimize customer journey — live simulation</h1>
-  <p>3 example customers show different paths through the same system — click nodes to explore, or press Play to move the data step by step.</p>
+  <p id="subtitle">Example customers show different paths through the same system — click nodes to explore, or press Play to move the data step by step.</p>
 </header>
 
-<div class="users">
-  <div class="user-card">
-    <p class="name">Hemanth — new customer</p>
-    <p class="role">Walks in today, opens a savings account only. Full onboarding, no alerts expected.</p>
-  </div>
-  <div class="user-card">
-    <p class="name">Jairam — new customer</p>
-    <p class="role">Walks in today, opens a savings account plus a personal loan. Full onboarding, and his post-loan transfers trigger a monitoring alert.</p>
-  </div>
-  <div class="user-card">
-    <p class="name">Manoj — existing customer</p>
-    <p class="role">Has banked here for years already. Skips onboarding (steps 1-6) and appears from the monitoring stage onward, sending international SWIFT wire transfers that get screened every time.</p>
-  </div>
-</div>
+<div class="users" id="users-row"></div>
 
 <div class="topbar">
-  <div class="legend">
-    <span><span class="dot-swatch" style="background:#7F77DD;"></span>Branch &amp; CRM</span>
-    <span><span class="dot-swatch" style="background:#D85A30;"></span>Screening &amp; risk</span>
-    <span><span class="dot-swatch" style="background:#1D9E75;"></span>Core banking &amp; data</span>
-    <span><span class="dot-swatch" style="background:#D4537E;"></span>Compliance engine &amp; reporting</span>
-  </div>
+  <div class="legend" id="legend-row"></div>
   <div class="controls">
     <button id="resetBtn">⟲ Reset</button>
     <button id="prevBtn">◀ Back</button>
@@ -217,23 +180,11 @@
 </div>
 
 <div id="stage-wrap">
-<svg id="svg" viewBox="0 0 1200 950" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+<svg id="svg" xmlns="http://www.w3.org/2000/svg">
   <g id="lines"></g>
-  <circle id="moving-dot" r="10" cx="150" cy="100"></circle>
+  <circle id="moving-dot" r="10" cx="0" cy="0"></circle>
   <g id="nodes"></g>
 </svg>
-</div>
-
-<div id="mobile-step" class="mobile-only">
-  <div class="badge" id="mobile-badge">1</div>
-  <div class="info">
-    <p class="lbl" id="mobile-label">Branch visit</p>
-    <p class="sub" id="mobile-sub">Step 1 / 12</p>
-  </div>
-  <div class="nav">
-    <button id="mobilePrevBtn">◀</button>
-    <button id="mobileNextBtn">▶</button>
-  </div>
 </div>
 
 <div id="table-wrap">
@@ -254,38 +205,44 @@
 <script>
 const colors = { purple:"#7F77DD", coral:"#D85A30", teal:"#1D9E75", pink:"#D4537E" };
 
+const customers = [
+  { key:"hemanth", name:"Hemanth", tag:"New — savings only", color:"#7F77DD" },
+  { key:"jairam", name:"Jairam", tag:"New — savings + loan", color:"#D4537E" },
+  { key:"manoj", name:"Manoj", tag:"Existing — SWIFT wires", color:"#1D9E75" }
+];
+
 const nodes = [
-  { id:1, x:150, y:100, label:"Branch visit", sub:"In person", color:"purple",
+  { label:"Branch visit", sub:"In person", color:"purple",
     cat:"Branch & CRM", who:"Bank manager", desc:"Hemanth and Jairam visit the branch and hand over original ID and income documents for verification. Manoj isn't here — he's an existing customer and skips onboarding entirely.", example:"Passport (Hemanth) and driver's license (Jairam) checked in person.",
     table:{ columns:["Customer","Document shown","Verified by","Branch"], rows:[
       ["Hemanth","Passport","Bank manager","Parsippany, NJ"],
       ["Jairam","Driver's license","Bank manager","Parsippany, NJ"]
     ]} },
-  { id:2, x:600, y:100, label:"Salesforce", sub:"Lead created", color:"purple",
+  { label:"Salesforce", sub:"Lead created", color:"purple",
     cat:"Branch & CRM", who:"Bank manager", desc:"A Lead / Opportunity record is created for each new customer with basic details.", example:"LEAD-9001 (Hemanth), LEAD-9002 (Jairam).",
     table:{ columns:["Lead ID","Customer","Product requested","Status"], rows:[
       ["LEAD-9001","Hemanth","Savings account","New"],
       ["LEAD-9002","Jairam","Savings + personal loan","New"]
     ]} },
-  { id:3, x:1050, y:100, label:"ArgoKeys", sub:"KYC capture", color:"purple",
+  { label:"ArgoKeys", sub:"KYC capture", color:"purple",
     cat:"Branch & CRM", who:"Bank manager", desc:"Verified ID details are typed into ArgoKeys, which auto-pushes into Salesforce.", example:"Passport A1234567, DOB 1990-04-12 (Hemanth).",
     table:{ columns:["Customer ID","Customer","ID type / number","DOB","Address"], rows:[
       ["CUST-58210","Hemanth","Passport A1234567","1990-04-12","12 Maple St, NJ"],
       ["CUST-58211","Jairam","Driver's License D9988776","1993-11-02","45 Oak Ave, NJ"]
     ]} },
-  { id:4, x:1050, y:300, label:"Screening", sub:"RDC / LexisNexis / Bridger", color:"coral",
+  { label:"Screening", sub:"RDC / LexisNexis / Bridger", color:"coral",
     cat:"Screening & risk", who:"Automated (background)", desc:"Onboarding screening checks new names against sanctions, PEP, and adverse-media lists. Manoj was screened this way years ago at his own onboarding, but as an existing customer his SWIFT wires get re-screened per transaction later at Step 9.", example:"Hemanth: clear. Jairam: clear.",
     table:{ columns:["Customer","RDC","LexisNexis","Bridger","Result"], rows:[
       ["Hemanth","Clear","Clear","Clear","Clear"],
       ["Jairam","Clear","Clear","Clear","Clear"]
     ]} },
-  { id:5, x:600, y:300, label:"Drawloop", sub:"Docs signed", color:"purple",
+  { label:"Drawloop", sub:"Docs signed", color:"purple",
     cat:"Branch & CRM", who:"Automated + e-signature", desc:"Agreements are pre-filled from Salesforce, signed electronically, and archived.", example:"Savings T&Cs (both); loan agreement (Jairam).",
     table:{ columns:["Customer","Document","Signed","Stored in"], rows:[
       ["Hemanth","Savings T&Cs","Yes","Imaging"],
       ["Jairam","Savings T&Cs + loan agreement","Yes","Imaging"]
     ]} },
-  { id:6, x:150, y:300, label:"Core banking", sub:"via MuleSoft", color:"teal",
+  { label:"Core banking", sub:"via MuleSoft", color:"teal",
     cat:"Core banking & data", who:"Automated integration (MuleSoft)", desc:"Approved data is pushed via API into Silverlake, and LoanIQ for Jairam's loan, creating the real account. No one retypes it. Manoj's account already exists here from years ago.", example:"SAV-100234 (Hemanth), SAV-100235 + LN-77410 (Jairam), SAV-40021 (Manoj, opened 2015).",
     table:{ columns:["Customer","Account type","Account no.","System"], rows:[
       ["Hemanth","Savings","SAV-100234","Silverlake"],
@@ -293,38 +250,38 @@ const nodes = [
       ["Jairam","Personal loan ($45,000)","LN-77410","LoanIQ"],
       ["Manoj","Savings (since 2015)","SAV-40021","Silverlake"]
     ]} },
-  { id:7, x:150, y:500, label:"EDW load", sub:"Nightly batch", color:"teal",
+  { label:"EDW load", sub:"Nightly batch", color:"teal",
     cat:"Core banking & data", who:"Automated (Cybermation)", desc:"Every account, new or existing, feeds into the Enterprise Data Warehouse overnight — including Manoj's ongoing SWIFT wire activity.", example:"ACCOUNT.DAT, PARTY.DAT, LOAN.DAT, TRANSACTIONS.DAT.",
     table:{ columns:["Customer","Source file(s)","Load time"], rows:[
       ["Hemanth","ACCOUNT.DAT, PARTY.DAT","11:00 PM batch"],
       ["Jairam","ACCOUNT.DAT, PARTY.DAT, LOAN.DAT","11:00 PM batch"],
       ["Manoj","TRANSACTIONS.DAT","11:00 PM batch"]
     ]} },
-  { id:8, x:600, y:500, label:"AIS / CDD", sub:"Risk score", color:"pink",
+  { label:"AIS / CDD", sub:"Risk score", color:"pink",
     cat:"Compliance engine", who:"Automated rules engine", desc:"Actimize loads EDW data and scores each customer's KYC risk. Existing customers like Manoj are re-scored periodically too, not just at onboarding.", example:"Hemanth: Low. Jairam: Medium (new loan). Manoj: Medium (frequent international wires).",
     table:{ columns:["Customer","CDD risk score","Reason"], rows:[
       ["Hemanth","Low","Standard profile"],
       ["Jairam","Medium","New loan relationship"],
       ["Manoj","Medium","Frequent international wires"]
     ]} },
-  { id:9, x:1050, y:500, label:"AIS / SAM", sub:"Transaction watch (+ ThetaRay)", color:"pink",
+  { label:"AIS / SAM", sub:"Transaction watch (+ ThetaRay)", color:"pink",
     cat:"Compliance engine", who:"Automated rules engine", desc:"Ongoing transactions are scanned continuously for suspicious patterns — this is where Manoj's SWIFT wires get checked every time he sends one. ThetaRay is an AI-based transaction monitoring tool sometimes run alongside SAM here, not part of onboarding screening.", example:"Jairam's near-$10k transfers raise Alert SAM148223. Manoj's $28,000 SWIFT wire to Singapore is screened against sanctions lists and passes clean.",
     table:{ columns:["Customer","Activity","SAM result"], rows:[
       ["Hemanth","Payroll deposits, normal bill pay","No alert"],
       ["Jairam","Transfers: $9,700 / $9,500 / $9,800 in one week","Alert SAM148223 (structuring)"],
       ["Manoj","$28,000 SWIFT wire to Singapore","Screened clean"]
     ]} },
-  { id:10, x:1050, y:700, label:"ActOne", sub:"Case opened", color:"pink",
+  { label:"ActOne", sub:"Case opened", color:"pink",
     cat:"Compliance engine", who:"Compliance analyst", desc:"The alert is investigated — analyst reviews transactions and contacts the customer. Manoj's SWIFT wire didn't raise an alert this time, so no case opens for him here.", example:"Case CASE-90456 opened for Jairam only.",
     table:{ columns:["Case ID","Customer","Alert linked","Analyst action"], rows:[
       ["CASE-90456","Jairam","SAM148223","Reviewed transactions, contacted customer"]
     ]} },
-  { id:11, x:600, y:700, label:"Case outcome", sub:"Closed / SAR?", color:"pink",
+  { label:"Case outcome", sub:"Closed / SAR?", color:"pink",
     cat:"Compliance engine", who:"Compliance analyst", desc:"Case is closed with a documented finding. A SAR is filed only if activity is genuinely suspicious.", example:"Closed — legitimate contractor payments, no SAR filed.",
     table:{ columns:["Case ID","Disposition","SAR filed?"], rows:[
       ["CASE-90456","Closed — no suspicious activity found","No"]
     ]} },
-  { id:12, x:150, y:700, label:"AVA & ongoing", sub:"Dashboards", color:"pink",
+  { label:"AVA & ongoing", sub:"Dashboards", color:"pink",
     cat:"Compliance engine", who:"Automated dashboards", desc:"AVA dashboards track everything, and all three accounts continue under standard ongoing monitoring going forward.", example:"Hemanth, Jairam, and Manoj all continue as normal, monitored customers.",
     table:{ columns:["Customer","Status","Risk score"], rows:[
       ["Hemanth","Active","Low"],
@@ -334,57 +291,132 @@ const nodes = [
 ];
 
 const svgNS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById("svg");
 const linesG = document.getElementById("lines");
 const nodesG = document.getElementById("nodes");
+const dot = document.getElementById("moving-dot");
+const stageWrap = document.getElementById("stage-wrap");
 
-for (let i = 0; i < nodes.length - 1; i++) {
-  const a = nodes[i], b = nodes[i+1];
-  const line = document.createElementNS(svgNS, "line");
-  line.setAttribute("x1", a.x); line.setAttribute("y1", a.y);
-  line.setAttribute("x2", b.x); line.setAttribute("y2", b.y);
-  line.setAttribute("class", "flow-line");
-  line.setAttribute("id", "line-" + i);
-  linesG.appendChild(line);
+const MOBILE_DIAGRAM_HEIGHT = 170;
+
+function isMobile() {
+  return window.matchMedia("(max-width: 700px)").matches;
 }
 
-nodes.forEach(function(n, i) {
-  const g = document.createElementNS(svgNS, "g");
-  g.setAttribute("data-idx", i);
-  g.style.cursor = "pointer";
-  g.addEventListener("click", function() { jumpTo(i); });
+function computeLayout() {
+  const n = nodes.length;
+  const mobile = isMobile();
+  const positions = [];
+  let vbWidth, vbHeight;
 
-  const circle = document.createElementNS(svgNS, "circle");
-  circle.setAttribute("cx", n.x); circle.setAttribute("cy", n.y);
-  circle.setAttribute("r", 46);
-  circle.setAttribute("fill", colors[n.color]);
-  circle.setAttribute("class", "node-circle");
-  circle.setAttribute("id", "circ-" + i);
-  g.appendChild(circle);
+  if (mobile) {
+    const spacing = 170, startX = 90, y = 95;
+    for (let i = 0; i < n; i++) { positions.push({ x: startX + i * spacing, y: y }); }
+    vbWidth = startX * 2 + (n - 1) * spacing;
+    vbHeight = 190;
+  } else {
+    const cols = 3, colSpacing = 450, rowSpacing = 200, startX = 150, startY = 100;
+    const rows = Math.ceil(n / cols);
+    for (let i = 0; i < n; i++) {
+      const row = Math.floor(i / cols);
+      let col = i % cols;
+      if (row % 2 === 1) col = cols - 1 - col;
+      positions.push({ x: startX + col * colSpacing, y: startY + row * rowSpacing });
+    }
+    vbWidth = startX * 2 + (cols - 1) * colSpacing;
+    vbHeight = startY * 2 + (rows - 1) * rowSpacing + 150;
+  }
+  return { positions, vbWidth, vbHeight, mobile };
+}
 
-  const stepNum = document.createElementNS(svgNS, "text");
-  stepNum.setAttribute("x", n.x); stepNum.setAttribute("y", n.y - 58);
-  stepNum.setAttribute("class", "step-num");
-  stepNum.textContent = "Step " + (i + 1);
-  g.appendChild(stepNum);
+function renderCustomers() {
+  document.getElementById("users-row").innerHTML = customers.map(function(c) {
+    return '<div class="chip" style="border-color:' + c.color + '">' +
+      '<span class="dot" style="background:' + c.color + '"></span>' +
+      '<span class="chip-name">' + c.name + '</span>' +
+      '<span class="chip-tag">' + c.tag + '</span></div>';
+  }).join("");
 
-  const label = document.createElementNS(svgNS, "text");
-  label.setAttribute("x", n.x); label.setAttribute("y", n.y - 4);
-  label.setAttribute("class", "node-label");
-  label.textContent = n.label;
-  g.appendChild(label);
+  document.getElementById("legend-row").innerHTML =
+    '<span><span class="dot-swatch" style="background:#7F77DD;"></span>Branch &amp; CRM</span>' +
+    '<span><span class="dot-swatch" style="background:#D85A30;"></span>Screening &amp; risk</span>' +
+    '<span><span class="dot-swatch" style="background:#1D9E75;"></span>Core banking &amp; data</span>' +
+    '<span><span class="dot-swatch" style="background:#D4537E;"></span>Compliance engine &amp; reporting</span>';
+}
 
-  const sub = document.createElementNS(svgNS, "text");
-  sub.setAttribute("x", n.x); sub.setAttribute("y", n.y + 16);
-  sub.setAttribute("class", "node-sub");
-  sub.textContent = n.sub;
-  g.appendChild(sub);
+function buildDiagram() {
+  const layout = computeLayout();
+  layout.positions.forEach(function(p, i) { nodes[i].x = p.x; nodes[i].y = p.y; });
 
-  nodesG.appendChild(g);
-});
+  svg.setAttribute("viewBox", "0 0 " + layout.vbWidth + " " + layout.vbHeight);
+
+  if (layout.mobile) {
+    const scale = MOBILE_DIAGRAM_HEIGHT / layout.vbHeight;
+    svg.style.width = Math.round(layout.vbWidth * scale) + "px";
+    svg.style.height = MOBILE_DIAGRAM_HEIGHT + "px";
+    stageWrap.style.height = MOBILE_DIAGRAM_HEIGHT + "px";
+  } else {
+    svg.style.width = "100%";
+    svg.style.height = "100%";
+    stageWrap.style.height = "";
+  }
+
+  linesG.innerHTML = "";
+  nodesG.innerHTML = "";
+
+  for (let i = 0; i < nodes.length - 1; i++) {
+    const a = nodes[i], b = nodes[i + 1];
+    const line = document.createElementNS(svgNS, "line");
+    line.setAttribute("x1", a.x); line.setAttribute("y1", a.y);
+    line.setAttribute("x2", b.x); line.setAttribute("y2", b.y);
+    line.setAttribute("class", "flow-line" + (i < current ? " done" : ""));
+    line.setAttribute("id", "line-" + i);
+    linesG.appendChild(line);
+  }
+
+  nodes.forEach(function(n, i) {
+    const g = document.createElementNS(svgNS, "g");
+    g.setAttribute("data-idx", i);
+    g.style.cursor = "pointer";
+    g.addEventListener("click", function() { jumpTo(i); });
+
+    const circle = document.createElementNS(svgNS, "circle");
+    circle.setAttribute("cx", n.x); circle.setAttribute("cy", n.y);
+    circle.setAttribute("r", 46);
+    circle.setAttribute("fill", colors[n.color]);
+    circle.setAttribute("class", "node-circle" + (i === current ? " active" : i < current ? " visited" : ""));
+    circle.setAttribute("id", "circ-" + i);
+    g.appendChild(circle);
+
+    const stepNum = document.createElementNS(svgNS, "text");
+    stepNum.setAttribute("x", n.x); stepNum.setAttribute("y", n.y - 58);
+    stepNum.setAttribute("class", "step-num");
+    stepNum.textContent = "Step " + (i + 1);
+    g.appendChild(stepNum);
+
+    const label = document.createElementNS(svgNS, "text");
+    label.setAttribute("x", n.x); label.setAttribute("y", n.y - 4);
+    label.setAttribute("class", "node-label");
+    label.textContent = n.label;
+    g.appendChild(label);
+
+    const sub = document.createElementNS(svgNS, "text");
+    sub.setAttribute("x", n.x); sub.setAttribute("y", n.y + 16);
+    sub.setAttribute("class", "node-sub");
+    sub.textContent = n.sub;
+    g.appendChild(sub);
+
+    nodesG.appendChild(g);
+  });
+
+  const idx = current < 0 ? 0 : current;
+  dot.setAttribute("cx", nodes[idx].x);
+  dot.setAttribute("cy", nodes[idx].y);
+  nodesG.appendChild(dot);
+}
 
 let current = -1;
 let autoTimer = null;
-const dot = document.getElementById("moving-dot");
 
 function rowClass(customerCell) {
   const v = (customerCell || "").toLowerCase();
@@ -414,31 +446,27 @@ function renderTable(i) {
 function updatePanel(i) {
   const n = nodes[i];
   document.getElementById("p-cat").textContent = n.cat;
-  document.getElementById("p-title").textContent = "Step " + (i+1) + " of " + nodes.length + " — " + n.label;
+  document.getElementById("p-title").textContent = "Step " + (i + 1) + " of " + nodes.length + " — " + n.label;
   document.getElementById("p-who").textContent = n.who;
   document.getElementById("p-desc").textContent = n.desc;
   document.getElementById("p-example").textContent = n.example;
-  document.getElementById("stepcount").textContent = "Step " + (i+1) + " / " + nodes.length;
+  document.getElementById("stepcount").textContent = "Step " + (i + 1) + " / " + nodes.length;
   renderTable(i);
-
-  const badge = document.getElementById("mobile-badge");
-  badge.textContent = (i + 1);
-  badge.style.background = colors[n.color];
-  document.getElementById("mobile-label").textContent = n.label;
-  document.getElementById("mobile-sub").textContent = "Step " + (i+1) + " / " + nodes.length + " — " + n.sub;
 }
 
 function setActive(i) {
   document.querySelectorAll(".node-circle").forEach(function(c) { c.classList.remove("active"); });
-  document.getElementById("circ-" + i).classList.add("active");
+  const active = document.getElementById("circ-" + i);
+  if (active) active.classList.add("active");
   for (let k = 0; k < i; k++) {
-    document.getElementById("circ-" + k).classList.add("visited");
+    const c = document.getElementById("circ-" + k);
+    if (c) c.classList.add("visited");
     const ln = document.getElementById("line-" + k);
     if (ln) ln.classList.add("done");
   }
 }
 
-function animateDot(fromIdx, toIdx, duration, callback) {
+function animateDot(fromIdx, toIdx, duration) {
   const a = nodes[fromIdx], b = nodes[toIdx];
   const start = performance.now();
   function step(now) {
@@ -446,9 +474,15 @@ function animateDot(fromIdx, toIdx, duration, callback) {
     dot.setAttribute("cx", a.x + (b.x - a.x) * t);
     dot.setAttribute("cy", a.y + (b.y - a.y) * t);
     if (t < 1) requestAnimationFrame(step);
-    else if (callback) callback();
   }
   requestAnimationFrame(step);
+}
+
+function scrollNodeIntoView(i) {
+  const el = document.getElementById("circ-" + i);
+  if (el && el.scrollIntoView) {
+    el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }
 }
 
 function goToStep(i) {
@@ -463,6 +497,7 @@ function goToStep(i) {
     dot.setAttribute("cx", nodes[i].x);
     dot.setAttribute("cy", nodes[i].y);
   }
+  if (isMobile()) scrollNodeIntoView(i);
   document.getElementById("prevBtn").disabled = (current <= 0);
   document.getElementById("playBtn").disabled = (current >= nodes.length - 1);
 }
@@ -482,23 +517,10 @@ document.getElementById("prevBtn").addEventListener("click", function() {
   goToStep(Math.max(current - 1, 0));
 });
 
-document.getElementById("mobileNextBtn").addEventListener("click", function() {
-  stopAuto();
-  goToStep(Math.min((current < 0 ? -1 : current) + 1, nodes.length - 1));
-});
-
-document.getElementById("mobilePrevBtn").addEventListener("click", function() {
-  stopAuto();
-  goToStep(Math.max(current - 1, 0));
-});
-
 document.getElementById("resetBtn").addEventListener("click", function() {
   stopAuto();
-  document.querySelectorAll(".node-circle").forEach(function(c) { c.classList.remove("active", "visited"); });
-  document.querySelectorAll(".flow-line").forEach(function(l) { l.classList.remove("done"); });
   current = -1;
-  dot.setAttribute("cx", nodes[0].x);
-  dot.setAttribute("cy", nodes[0].y);
+  buildDiagram();
   document.getElementById("p-cat").textContent = "Ready";
   document.getElementById("p-title").textContent = 'Click "Play next step" to begin, or click any node directly.';
   document.getElementById("p-who").textContent = "—";
@@ -507,10 +529,6 @@ document.getElementById("resetBtn").addEventListener("click", function() {
   document.getElementById("stepcount").textContent = "";
   document.getElementById("prevBtn").disabled = true;
   document.getElementById("playBtn").disabled = false;
-  document.getElementById("mobile-badge").textContent = "–";
-  document.getElementById("mobile-badge").style.background = "#3a3a55";
-  document.getElementById("mobile-label").textContent = "Not started";
-  document.getElementById("mobile-sub").textContent = "Tap ▶ to begin";
   document.getElementById("data-table").innerHTML = "";
 });
 
@@ -532,7 +550,18 @@ document.getElementById("playAllBtn").addEventListener("click", function() {
   goToStep(current < 0 ? 0 : current);
 });
 
+let resizeTimer = null;
+window.addEventListener("resize", function() {
+  if (resizeTimer) clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(buildDiagram, 150);
+});
+window.addEventListener("orientationchange", function() {
+  setTimeout(buildDiagram, 200);
+});
+
 document.getElementById("prevBtn").disabled = true;
+renderCustomers();
+buildDiagram();
 </script>
 
 </body>
